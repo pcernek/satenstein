@@ -4910,72 +4910,78 @@ void InitDecPromVars() {
 
 void UpdateDecPromVars() {
 
-  UINT32 j,k;
+  UINT32 j, k;
   UINT32 iVar;
-  switch(iUpdateSchemePromList){
-  case 1:  for (j=0;j<iNumChanges;j++) {
+
+  switch (iUpdateSchemePromList) {
+
+      case 1:
+
+          for (j = 0; j < iNumChanges; j++) {
             iVar = aChangeList[j];
-            if ((aVarScore[iVar] < 0)&&(aChangeOldScore[iVar] >= 0)) {
-             aDecPromVarsListPos[iVar] = iNumDecPromVars;
-             aDecPromVarsList[iNumDecPromVars++] = iVar;
-             aIsDecPromVar[iVar]= TRUE;
+            if ((aVarScore[iVar] < 0) && (aChangeOldScore[iVar] >= 0)) {
+              aDecPromVarsListPos[iVar] = iNumDecPromVars;
+              aDecPromVarsList[iNumDecPromVars++] = iVar;
+              aIsDecPromVar[iVar] = TRUE;
 
             }
           }
-  j=0;
-  k=0;
 
-  if(aIsDecPromVar[iFlipCandidate])
-  {
-  /* A variable just flipped at the last step cannot be 
-     a promising decreasing variable.
-     Thats why the variable is swapped with the last 
-     variable of the promising decreasing variable list. 
-     The position of the swapped variable is also 
-     updated.
-     Because of this change the flip performance of Satenstein Version 1.2
-     will not be identical for Satenstein for a particular random seed. 
- */
+          j = 0;
+          k = 0;
 
-    j = aDecPromVarsListPos[iFlipCandidate];
-    iNumDecPromVars--;
-    aDecPromVarsList[j] = aDecPromVarsList[iNumDecPromVars];
-    aDecPromVarsListPos[aDecPromVarsList[j]]=j;
-    aIsDecPromVar[iFlipCandidate] = FALSE;
-  }
+          if (aIsDecPromVar[iFlipCandidate]) {
+            /* A variable just flipped at the last step cannot be
+               a promising decreasing variable.
+               Thats why the variable is swapped with the last
+               variable of the promising decreasing variable list.
+               The position of the swapped variable is also
+               updated.
+               Because of this change the flip performance of Satenstein Version 1.2
+               will not be identical for Satenstein for a particular random seed.
+           */
 
- 
-   break;
+            j = aDecPromVarsListPos[iFlipCandidate];
+            iNumDecPromVars--;
+            aDecPromVarsList[j] = aDecPromVarsList[iNumDecPromVars];
+            aDecPromVarsListPos[aDecPromVarsList[j]] = j;
+            aIsDecPromVar[iFlipCandidate] = FALSE;
+          }
 
- case 2:  for (j=0;j<iNumChanges;j++) {
+          break;
+
+      case 2:
+
+          for (j = 0; j < iNumChanges; j++) {
             iVar = aChangeList[j];
-            if ((aVarScore[iVar] < 0)&&(aChangeOldScore[iVar] >= 0)) {
-             aDecPromVarsListPos[iVar] = iNumDecPromVars;
-             aDecPromVarsList[iNumDecPromVars++] = iVar;
-             aIsDecPromVar[iVar]= TRUE;
+            if ((aVarScore[iVar] < 0) && (aChangeOldScore[iVar] >= 0)) {
+              aDecPromVarsListPos[iVar] = iNumDecPromVars;
+              aDecPromVarsList[iNumDecPromVars++] = iVar;
+              aIsDecPromVar[iVar] = TRUE;
 
             }
           }
-          j=0;
-          k=0;
-           while (j < iNumDecPromVars) {
+
+          j = 0;
+          k = 0;
+
+          while (j < iNumDecPromVars) {
             iVar = aDecPromVarsList[k];
-            if ((aVarScore[iVar] >= 0)||(iVar == iFlipCandidate)) {
-             iNumDecPromVars--;
-             aIsDecPromVar[j]= FALSE;
-           } else {
-          aDecPromVarsList[j]=aDecPromVarsList[k];
-          aDecPromVarsListPos[iVar] = j;
-          j++;
-    }
-    k++;
+            if ((aVarScore[iVar] >= 0) || (iVar == iFlipCandidate)) {
+              iNumDecPromVars--;
+              aIsDecPromVar[j] = FALSE;
+            } else {
+              aDecPromVarsList[j] = aDecPromVarsList[k];
+              aDecPromVarsListPos[iVar] = j;
+              j++;
+            }
+            k++;
+          }
+
+          break;
+
   }
-  
-  break;
-
-
- }
- }
+}
 
 void CreateDecPromPenVars() {
 

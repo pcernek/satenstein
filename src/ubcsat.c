@@ -88,7 +88,8 @@ int ubcsatmain(int argc, char *argv[]) {
         RunProcedures(InitStateInfo);
         RunProcedures(PostInit);
         bRestart = FALSE;
-      } else {
+      }
+      else {
         RunProcedures(ChooseCandidate);
         RunProcedures(PreFlip);
         RunProcedures(FlipCandidate);

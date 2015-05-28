@@ -13,4 +13,4 @@ src/adaptnovelty.c src/algorithms.c src/algorithms.h src/ddfw.c src/derandomized
 
 add_executable(ubcsat ${SOURCE_FILES})
 
-add_dependencies(ubcsat ${DEPENDENCIES})
+#object_depends(ubcsat ${DEPENDENCIES})

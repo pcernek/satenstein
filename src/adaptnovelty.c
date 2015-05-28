@@ -105,17 +105,17 @@ void AddAdaptNovelty() {
 }
 
 void InitAdaptNoveltyPlusNoise() {
-  iLastAdaptStep=iStep;
-  iLastAdaptNumFalse=iNumFalse;
-  fLastAdaptSumFalseW=fTotalWeight;
+  iLastAdaptStep = iStep;
+  iLastAdaptNumFalse = iNumFalse;
+  fLastAdaptSumFalseW = fTotalWeight;
   iNovNoise = 0;
   intNovNoise = 0;
-  if(bAdaptWalkProb){
-  iDp = 0;
-  iWp = 0;
-  intDp = 0;
-}
-  iWpWalk=0;
+  if (bAdaptWalkProb) {
+    iDp = 0;
+    iWp = 0;
+    intDp = 0;
+  }
+  iWpWalk = 0;
 }
 
 void AdaptNoveltyPlusNoise() {

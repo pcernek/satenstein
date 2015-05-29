@@ -21,6 +21,11 @@
 */
 
 #include "ubcsat.h"
+//#include "novelty.c"
+//#include "rnovelty.c"
+//#include "walksat.c"
+//#include "paws.c"
+//#include "dcca.c"
 
 void PickSatenstein();
 void PickSatensteinW();
@@ -1112,6 +1117,8 @@ void PickSatenstein() {
      case 18: PickNoveltyPlusSattime();
           break;
 
+        case 16:
+          PickDCCAStructured();
 
 	   }
    }

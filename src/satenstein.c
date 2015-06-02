@@ -25,7 +25,7 @@
 //#include "rnovelty.c"
 //#include "walksat.c"
 //#include "paws.c"
-//#include "dcca.c"
+#include "dcca.h"
 
 void PickSatenstein();
 void PickSatensteinW();
@@ -238,8 +238,6 @@ void EnableDisableTrigger() {
     DeActivateTriggers("AdaptPromNoveltyNoise,InitAdaptPromNoveltyNoise");
   }
 
-
-
 //Trigger VW2Weight is required only iHeuristic is 8 
 
 
@@ -441,9 +439,7 @@ void PickSatenstein() {
   bPerformNovelty = TRUE;
   if (bPerformRandomWalk) {
 
-
     switch (iRandomStep) {
-
 
       case 1:
         if (RandomProb(iRWp)) {
@@ -563,9 +559,7 @@ void PickSatenstein() {
         }
         break;
 
-
     }
-
 
   }
 
@@ -573,7 +567,6 @@ void PickSatenstein() {
   if (bPromisingList) {
     bPerformNovelty = TRUE;
     if (iNumDecPromVars > 0) {
-
 
       switch (iDecStrategy) {
 
@@ -949,6 +942,9 @@ void PickSatenstein() {
           NoveltyPromisingProm();
           break;
 
+        case 12:
+          DCCAProm();
+
 
       }
     }
@@ -1117,9 +1113,6 @@ void PickSatenstein() {
      case 18: PickNoveltyPlusSattime();
           break;
 
-        case 16:
-          PickDCCAStructured();
-
 	   }
    }
  }
@@ -1137,7 +1130,6 @@ void PickSatenstein() {
             Smooth();
         }
       }
-
 
       bPerformNovelty = TRUE;
 
@@ -1707,7 +1699,6 @@ UINT32 TieBreaking() {
       break;
   }
 
-
   return 0;
 }
 
@@ -1728,8 +1719,6 @@ BOOL CheckIfFreebie(UINT32 iLookVar) {
 
   if (iLookVar == 0) {
     return FALSE;
-
-
   }
 
   litWasTrue = GetTrueLit(iLookVar);
@@ -1760,8 +1749,6 @@ BOOL CheckIfFreebie(UINT32 iLookVar) {
     }
     pClause++;
   }
-
-
 
 /* 
   printf("\n Breakcount is %u",aBreakCount[iLookVar]);
@@ -1858,7 +1845,6 @@ void NoveltyProm() {
         iFlipCandidate = iSecondBestPromVar;
     }
   }
-
 
 }
 
@@ -1958,7 +1944,6 @@ void NoveltyPlusPlusProm() {
     }
   }
 
-
 }
 
 
@@ -2028,7 +2013,6 @@ void Smooth() {
         aDecPromVarsList[iNumDecPromVars++] = iVar;
         aIsDecPromVar[iVar] = TRUE;
       }
-
 
     }
 
@@ -2157,7 +2141,4 @@ void NoveltyPromisingProm() {
   }
 
 }
-
-
-
 

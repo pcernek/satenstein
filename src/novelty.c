@@ -375,7 +375,7 @@ void AddNoveltyPlusPlusPrimePromising() {
 
 
 void PickNovelty() {
- 
+
   UINT32 i;
   UINT32 j;
   SINT32 iScore;
@@ -387,22 +387,22 @@ void PickNovelty() {
   UINT32 iVar;
   SINT32 iBestScoreWithoutPen;
   SINT32 iScoreWithoutPen;
-  
+
 
   UINT32 iYoungestVar;
 
   SINT32 iSecondBestScore;
-  
-  UINT32 iBestVar=0;
-  UINT32 iSecondBestVar=0;
-  
- 
+
+  UINT32 iBestVar = 0;
+  UINT32 iSecondBestVar = 0;
+
+
   iBestScore = bPen ? iTotalWeight : iNumClauses;
   iSecondBestScore = bPen ? iTotalWeight : iNumClauses;
 
   /* select an unsatisfied clause uniformly at random */
-  
-  
+
+
   if (iNumFalse) {
     iClause = SelectClause();
     iClauseLen = aClauseLen[iClause];
@@ -415,7 +415,7 @@ void PickNovelty() {
 
   iYoungestVar = GetVarFromLit(*pLit);
 
-  for (j=0;j<iClauseLen;j++) {
+  for (j = 0; j < iClauseLen; j++) {
 
     /* for WalkSAT variants, it's faster to calculate the
        score for each literal than to cache the values */
@@ -428,58 +428,58 @@ void PickNovelty() {
       we need to check whether clause penalty is
       activated. If it is activated then, we need 
       to take account of the clause weight*/
-    if(!bPromisingList && !bPen){
-    iNumOcc = aNumLitOcc[*pLit];
-    pClause = pLitClause[*pLit];
-    for (i=0;i<iNumOcc;i++) {
-      if (aNumTrueLit[*pClause]==0) {
-        iScore--;
-        iScoreWithoutPen --;
+    if (!bPromisingList && !bPen) {
+      iNumOcc = aNumLitOcc[*pLit];
+      pClause = pLitClause[*pLit];
+      for (i = 0; i < iNumOcc; i++) {
+        if (aNumTrueLit[*pClause] == 0) {
+          iScore--;
+          iScoreWithoutPen--;
+        }
+        pClause++;
       }
-      pClause++;
-    }
 
-    iNumOcc = aNumLitOcc[GetNegatedLit(*pLit)];
-    pClause = pLitClause[GetNegatedLit(*pLit)];
-    
-    for (i=0;i<iNumOcc;i++) {
-      if (aNumTrueLit[*pClause]==1) {
-        iScore++;
-        iScoreWithoutPen++;
+      iNumOcc = aNumLitOcc[GetNegatedLit(*pLit)];
+      pClause = pLitClause[GetNegatedLit(*pLit)];
+
+      for (i = 0; i < iNumOcc; i++) {
+        if (aNumTrueLit[*pClause] == 1) {
+          iScore++;
+          iScoreWithoutPen++;
+        }
+        pClause++;
       }
-      pClause++;
-    }
-    }else if(!bPromisingList && bPen){
-    //Promising List is not used but Clause Penalty is activated
-        iNumOcc = aNumLitOcc[*pLit];
-        pClause = pLitClause[*pLit];
-        for (i=0;i<iNumOcc;i++) {
-         if (aNumTrueLit[*pClause]==0) {
+    } else if (!bPromisingList && bPen) {
+      //Promising List is not used but Clause Penalty is activated
+      iNumOcc = aNumLitOcc[*pLit];
+      pClause = pLitClause[*pLit];
+      for (i = 0; i < iNumOcc; i++) {
+        if (aNumTrueLit[*pClause] == 0) {
           iScore -= aClausePen[*pClause];
           iScoreWithoutPen--;
-         } 
+        }
         pClause++;
-      } 
-
-    iNumOcc = aNumLitOcc[GetNegatedLit(*pLit)];
-    pClause = pLitClause[GetNegatedLit(*pLit)];
-    
-    for (i=0;i<iNumOcc;i++) {
-      if (aNumTrueLit[*pClause]==1) {
-        iScore+= aClausePen[*pClause];
-        iScoreWithoutPen++;
       }
-      pClause++;
+
+      iNumOcc = aNumLitOcc[GetNegatedLit(*pLit)];
+      pClause = pLitClause[GetNegatedLit(*pLit)];
+
+      for (i = 0; i < iNumOcc; i++) {
+        if (aNumTrueLit[*pClause] == 1) {
+          iScore += aClausePen[*pClause];
+          iScoreWithoutPen++;
+        }
+        pClause++;
+      }
+
+
+    } else {
+
+      iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
+      iScoreWithoutPen = aVarScore[iVar];
     }
 
 
-   } else {
-
-   iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
-   iScoreWithoutPen = aVarScore[iVar];
-  }
-
-  
     /* keep track of which literal was the 'youngest' */
 
     if (aVarLastChange[iVar] > aVarLastChange[iYoungestVar])
@@ -494,14 +494,15 @@ void PickNovelty() {
       iSecondBestScore = iBestScore;
       iBestScore = iScore;
       iBestScoreWithoutPen = iScoreWithoutPen;
-    } else if ((iScore < iSecondBestScore) || ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestVar]))) {
+    } else if ((iScore < iSecondBestScore) ||
+               ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestVar]))) {
       iSecondBestVar = iVar;
       iSecondBestScore = iScore;
     }
 
     pLit++;
   }
-  
+
   iFlipCandidate = iBestVar;
 
   /* if the best is the youngest, select it */
@@ -510,15 +511,15 @@ void PickNovelty() {
     return;
 
   /* otherwise, choose the second best with probability (novnoise) */
-  
+
   //printf("\n %d The best score is ", aVarScore[iBestVar]);
   //printf("\n %d The second best score is ", aVarScore[iSecondBestVar]);
 
   //printf("%f ", ProbToFloat(iNovNoise));
-  
-  if((bPerformNoveltyAlternate && iBestScoreWithoutPen ==0)|| (RandomProb(iNovNoise)))
+
+  if ((bPerformNoveltyAlternate && iBestScoreWithoutPen == 0) || (RandomProb(iNovNoise)))
     iFlipCandidate = iSecondBestVar;
-  
+
 
 }
 
@@ -1597,7 +1598,7 @@ void PickNoveltyPlusPlusPrimePromising()
 
       /* for each literal in the clause */
 
-      for (j=0;j<iClauseLen;j++) {
+      for (j = 0; j < iClauseLen; j++) {
         iVar = GetVarFromLit(*pLit);
 
         /* use the cached score value for that literal */
@@ -1618,17 +1619,18 @@ void PickNoveltyPlusPlusPrimePromising()
           iSecondBestScore = iBestScore;
           iBestScore = iScore;
           iBestScoreWithoutPen = iScoreWithoutPen;
-        } else if ((iScore < iSecondBestScore) || ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestVar]))) {
+        } else if ((iScore < iSecondBestScore) ||
+                   ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestVar]))) {
           iSecondBestVar = iVar;
           iSecondBestScore = iScore;
         }
         pLit++;
       }
 
-         if (RandomProb(iDp)) {
-         
+      if (RandomProb(iDp)) {
 
-}
+
+      }
 
 
 
@@ -1640,46 +1642,45 @@ void PickNoveltyPlusPlusPrimePromising()
    variables */
       /* For diversification probability dp a variable is selected at random after excluding the best and second best
    variables */
-  if (RandomProb(iDp)) {
-  pLit = pClauseLits[iClause];
-  iNumCandidates = 0;
+      if (RandomProb(iDp)) {
+        pLit = pClauseLits[iClause];
+        iNumCandidates = 0;
 
-  if(iClauseLen <= 2){
-   if(iClauseLen == 1){
-     litPick = (pClauseLits[iClause][0]);
-     iFlipCandidate = GetVarFromLit(litPick);
-     return;
-   }
-   else{
-     litPick = (pClauseLits[iClause][RandomInt(iClauseLen)]);
-     iFlipCandidate = GetVarFromLit(litPick);
-     return;
-   }
+        if (iClauseLen <= 2) {
+          if (iClauseLen == 1) {
+            litPick = (pClauseLits[iClause][0]);
+            iFlipCandidate = GetVarFromLit(litPick);
+            return;
+          }
+          else {
+            litPick = (pClauseLits[iClause][RandomInt(iClauseLen)]);
+            iFlipCandidate = GetVarFromLit(litPick);
+            return;
+          }
 
-  }
-
-  for (j=0;j<iClauseLen;j++) {
-
-    /* for WalkSAT variants, it's faster to calculate the
-       score for each literal than to cache the values */
-
-    iVar = GetVarFromLit(*pLit);
-
-        if((iVar != iBestVar) && (iVar != iSecondBestVar)) {
-                aCandidateList[iNumCandidates++] = iVar;
         }
 
-        pLit++;
+        for (j = 0; j < iClauseLen; j++) {
 
-  }
-  if (iNumCandidates > 1)
-    iFlipCandidate = aCandidateList[RandomInt(iNumCandidates)];
-  else
-    iFlipCandidate = aCandidateList[0];
-  return;
+          /* for WalkSAT variants, it's faster to calculate the
+             score for each literal than to cache the values */
 
+          iVar = GetVarFromLit(*pLit);
 
-}
+          if ((iVar != iBestVar) && (iVar != iSecondBestVar)) {
+            aCandidateList[iNumCandidates++] = iVar;
+          }
+
+          pLit++;
+
+        }
+        if (iNumCandidates > 1)
+          iFlipCandidate = aCandidateList[RandomInt(iNumCandidates)];
+        else
+          iFlipCandidate = aCandidateList[0];
+        return;
+
+      }
 
 
       iFlipCandidate = iBestVar;
@@ -1687,8 +1688,8 @@ void PickNoveltyPlusPlusPrimePromising()
       /* If the best is the youngest, with probability (iNovNoise) select the 2nd best */
 
       if (iFlipCandidate == iYoungestVar) {
-      if((bPerformNoveltyAlternate && iBestScoreWithoutPen ==0)|| (RandomProb(iNovNoise))){
-       iFlipCandidate = iSecondBestVar;
+        if ((bPerformNoveltyAlternate && iBestScoreWithoutPen == 0) || (RandomProb(iNovNoise))) {
+          iFlipCandidate = iSecondBestVar;
           return;
         }
       } else {
@@ -1702,7 +1703,8 @@ void PickNoveltyPlusPlusPrimePromising()
 
       /* otherwise, determine the 'look ahead' score for the 2nd best variable */
 
-      iSecondBestLookAheadScore = bPen ? aVarPenScore[iSecondBestVar] + BestLookAheadPenScore(iSecondBestVar): aVarScore[iSecondBestVar] + BestLookAheadScore(iSecondBestVar);
+      iSecondBestLookAheadScore = bPen ? aVarPenScore[iSecondBestVar] + BestLookAheadPenScore(iSecondBestVar) :
+                                  aVarScore[iSecondBestVar] + BestLookAheadScore(iSecondBestVar);
 
       if (iSecondBestLookAheadScore > iBestScore) {
         iBestLookAheadScore = iBestScore;
@@ -1711,7 +1713,8 @@ void PickNoveltyPlusPlusPrimePromising()
         /* if the 'look ahead' score for the 2nd variable is better than the regular score
            for the best variable, calculate the look ahead score for the best variable */
 
-        iBestLookAheadScore =bPen ?  aVarPenScore[iFlipCandidate] + BestLookAheadPenScore(iFlipCandidate) : aVarScore[iFlipCandidate] + BestLookAheadScore(iFlipCandidate);
+        iBestLookAheadScore = bPen ? aVarPenScore[iFlipCandidate] + BestLookAheadPenScore(iFlipCandidate) :
+                              aVarScore[iFlipCandidate] + BestLookAheadScore(iFlipCandidate);
       }
 
       /* choose the variable with the best look ahead score */
@@ -1725,9 +1728,6 @@ void PickNoveltyPlusPlusPrimePromising()
   } else {
     iFlipCandidate = 0;
   }
-
-
- 
 
 }
 
@@ -1903,8 +1903,8 @@ void PickNoveltyPlusFC() {
      and then select the variable that has been flipped least number of times */
 
 
-      if (RandomProb(iDp)) {
-      if (iNumFalse) {
+  if (RandomProb(iDp)) {
+    if (iNumFalse) {
       //iClause = aFalseList[RandomInt(iNumFalse)];
       iClause = SelectClause();
       iClauseLen = aClauseLen[iClause];
@@ -1915,7 +1915,7 @@ void PickNoveltyPlusFC() {
 
       pLit++;
 
-      for (j=1;j<iClauseLen;j++) {
+      for (j = 1; j < iClauseLen; j++) {
         iVar = GetVarFromLit(*pLit);
 
         if (aFlipCounts[iVar] < aFlipCounts[iFlipCandidate]) {
@@ -1930,10 +1930,10 @@ void PickNoveltyPlusFC() {
   } else {
 
     /* otherwise, use regular novelty */
-    if(!bTabu)
-    PickNovelty();
+    if (!bTabu)
+      PickNovelty();
     else
-    PickNoveltyTabu();
+      PickNoveltyTabu();
   }
 }
 
@@ -2034,17 +2034,15 @@ void PickNoveltyTabu()
   UINT32 iYoungestVar;
 
   SINT32 iSecondBestScore;
-  
-  UINT32 iBestVar=0;
-  UINT32 iSecondBestVar=0;
+
+  UINT32 iBestVar = 0;
+  UINT32 iSecondBestVar = 0;
   UINT32 iTabuCutoff;
 
   iBestScore = iNumClauses;
   iSecondBestScore = iNumClauses;
-  
-   
-   
-   /* calculation of tabu cutoff */
+
+  /* calculation of tabu cutoff */
 
   if (iStep > iTabuTenure) {
     iTabuCutoff = iStep - iTabuTenure;
@@ -2069,69 +2067,59 @@ void PickNoveltyTabu()
 
   iYoungestVar = GetVarFromLit(*pLit);
 
-  for (j=0;j<iClauseLen;j++) {
-
-   
+  for (j = 0; j < iClauseLen; j++) {
     /* for WalkSAT variants, it's faster to calculate the
        score for each literal than to cache the values */
 
-    
-
-    iVar = GetVarFromLit(*pLit);   
-    
+    iVar = GetVarFromLit(*pLit);
 
     iScore = 0;
     /* Complex scoring mechanism aimed to make things efficient */
-        if(!bPromisingList && !bPen){
-    iNumOcc = aNumLitOcc[*pLit];
-    pClause = pLitClause[*pLit];
-    for (i=0;i<iNumOcc;i++) {
-      if (aNumTrueLit[*pClause]==0) {
-        iScore--;
-      }
-      pClause++;
-    }
-
-    iNumOcc = aNumLitOcc[GetNegatedLit(*pLit)];
-    pClause = pLitClause[GetNegatedLit(*pLit)];
-
-    for (i=0;i<iNumOcc;i++) {
-      if (aNumTrueLit[*pClause]==1) {
-        iScore++;
-      }
-      pClause++;
-    }
-    }else if(!bPromisingList && bPen){
-    //Promising List is not used but Clause Penalty is activated
-        iNumOcc = aNumLitOcc[*pLit];
-        pClause = pLitClause[*pLit];
-        for (i=0;i<iNumOcc;i++) {
-         if (aNumTrueLit[*pClause]==0) {
-          iScore -= aClausePen[*pClause];
-         }
+    if (!bPromisingList && !bPen) {
+      iNumOcc = aNumLitOcc[*pLit];
+      pClause = pLitClause[*pLit];
+      for (i = 0; i < iNumOcc; i++) {
+        if (aNumTrueLit[*pClause] == 0) {
+          iScore--;
+        }
         pClause++;
       }
 
-    iNumOcc = aNumLitOcc[GetNegatedLit(*pLit)];
-    pClause = pLitClause[GetNegatedLit(*pLit)];
+      iNumOcc = aNumLitOcc[GetNegatedLit(*pLit)];
+      pClause = pLitClause[GetNegatedLit(*pLit)];
 
-    for (i=0;i<iNumOcc;i++) {
-      if (aNumTrueLit[*pClause]==1) {
-        iScore+= aClausePen[*pClause];
+      for (i = 0; i < iNumOcc; i++) {
+        if (aNumTrueLit[*pClause] == 1) {
+          iScore++;
+        }
+        pClause++;
       }
-      pClause++;
+    } else if (!bPromisingList && bPen) {
+      //Promising List is not used but Clause Penalty is activated
+      iNumOcc = aNumLitOcc[*pLit];
+      pClause = pLitClause[*pLit];
+      for (i = 0; i < iNumOcc; i++) {
+        if (aNumTrueLit[*pClause] == 0) {
+          iScore -= aClausePen[*pClause];
+        }
+        pClause++;
+      }
+
+      iNumOcc = aNumLitOcc[GetNegatedLit(*pLit)];
+      pClause = pLitClause[GetNegatedLit(*pLit)];
+
+      for (i = 0; i < iNumOcc; i++) {
+        if (aNumTrueLit[*pClause] == 1) {
+          iScore += aClausePen[*pClause];
+        }
+        pClause++;
+      }
+
+    }
+    else {
+      iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
     }
 
-
-   } 
-   else{
-  iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
-
-  }
-  
-
-
- 
     /* keep track of which literal was the 'youngest' */
 
     if (aVarLastChange[iVar] > aVarLastChange[iYoungestVar])
@@ -2140,21 +2128,20 @@ void PickNoveltyTabu()
     /* keep track of the 'best' and the 'second best' variables,
        breaking ties by selecting the younger variables */
 
-   if((aVarLastChange[iVar] < iTabuCutoff)||(iScore ==0))
-    {
+    if ((aVarLastChange[iVar] < iTabuCutoff) || (iScore == 0)) {
 
-    if ((iScore < iBestScore) || ((iScore == iBestScore) && (aVarLastChange[iVar] < aVarLastChange[iBestVar]))) {
-      iSecondBestVar = iBestVar;
-      iBestVar = iVar;
-      iSecondBestScore = iBestScore;
-      iBestScore = iScore;
-    } else if ((iScore < iSecondBestScore) || ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestVar]))) {
-      iSecondBestVar = iVar;
-      iSecondBestScore = iScore;
+      if ((iScore < iBestScore) || ((iScore == iBestScore) && (aVarLastChange[iVar] < aVarLastChange[iBestVar]))) {
+        iSecondBestVar = iBestVar;
+        iBestVar = iVar;
+        iSecondBestScore = iBestScore;
+        iBestScore = iScore;
+      } else if ((iScore < iSecondBestScore) ||
+                 ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestVar]))) {
+        iSecondBestVar = iVar;
+        iSecondBestScore = iScore;
+      }
+
     }
-
-    
-  }
     pLit++;
   }
   iFlipCandidate = iBestVar;
@@ -2165,7 +2152,7 @@ void PickNoveltyTabu()
     return;
 
   /* otherwise, choose the second best with probability (novnoise) */
-  
+
   //printf("\n %d The best score is ", aVarScore[iBestVar]);
   //printf("\n %d The second best score is ", aVarScore[iSecondBestVar]);
 

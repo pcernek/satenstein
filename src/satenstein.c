@@ -26,6 +26,7 @@
 //#include "walksat.c"
 //#include "paws.c"
 #include "dcca.h"
+#include "satenstein-types.h"
 
 void PickSatenstein();
 void PickSatensteinW();
@@ -396,6 +397,7 @@ void EnableDisableTrigger() {
     iUpdateSchemePromList = 2;
   }
 
+
   if ((iSelectClause == 3) || (iSelectClause == 4) || (iSelectClause == 5) || (iSelectClause == 6)) {
     ActivateTriggers("ClauseVarFlipCounts");
   }
@@ -403,6 +405,14 @@ void EnableDisableTrigger() {
     DeActivateTriggers("ClauseVarFlipCounts");
   }
 
+  /**
+   * If we are performing configuration checking as a strategy for selecting promising variables, of which DCCA
+   *  is the only currently implemented version as of June 2015, then we must hard code the update scheme for
+   *  promising lists based on configuration.
+   */
+  if (bPromisingList && iDecStrategy == PICK_DCCA) {
+    iUpdateSchemePromList = UPDATE_DCCA;
+  }
 
 }
 
@@ -572,7 +582,7 @@ void PickSatenstein() {
 
       switch (iDecStrategy) {
 
-        case 1:/* Checks for freebie (breakcount 0) variables in the
+        case PICK_FREEBIE:/* Checks for freebie (breakcount 0) variables in the
                     promising decreasing variable stack. If there are 
                     freebies then selects among them according to the
                     tie-breaking scheme. If there is not any free-bie
@@ -637,7 +647,7 @@ void PickSatenstein() {
           }
           break;
 
-        case 2: /* Flip the variable with highest score
+        case PICK_BESTSCORE: /* Flip the variable with highest score
                     breaking ties in favor of the least 
                     recently flipped variable. This strategy
                     is taken by G2WSAT, GNovelty+, adaptG2WSAT
@@ -699,7 +709,7 @@ void PickSatenstein() {
           }
           break;
 
-        case 3: /* Selects the least recently flipped variable
+        case PICK_OLDEST: /* Selects the least recently flipped variable
                     from the promising decreasing variable list.
                     This strategy is present in adaptG2WSAT0, 
                     adaptG2WSAT+ and adaptG2WSAT+p. */
@@ -744,7 +754,7 @@ void PickSatenstein() {
 
           break;
 
-        case 4:  /*Pick the variable that has been flipped least number of times
+        case PICK_BEST_VW1:  /*Pick the variable that has been flipped least number of times
                     Any remaining ties are broken according to the tie-breaking
                     policy. */
           iNumCandidates = 0;
@@ -801,7 +811,7 @@ void PickSatenstein() {
             iFlipCandidate = aCandidateList[0];
 
           break;
-        case 5:  /*Pick the variable that has been flipped least number of times
+        case PICK_BEST_VW2:  /*Pick the variable that has been flipped least number of times
                     Any remaining ties are broken according to the tie-breaking
                     policy. */
           iNumCandidates = 0;
@@ -859,7 +869,7 @@ void PickSatenstein() {
           break;
 
 
-        case 6:  /* Select randomly a variable from the
+        case PICK_RANDOM:  /* Select randomly a variable from the
                     promising decreasing variable. */
           iBestScore = iNumFalse;  //CWBIG;    //BIG;
           iLastChange = iStep;
@@ -899,25 +909,25 @@ void PickSatenstein() {
 
 
           break;
-        case 7:
+        case PICK_NOVELTY:
           NoveltyProm();
           break;
 
-        case 8:
+        case PICK_NOVELTYPLUSPLUS:
           NoveltyPlusPlusProm();
           if (iNumDecPromVars > 1) {
             if (RandomProb(iPromDp))
               iFlipCandidate = iLeastRecentlyFlippedPromVar;
           }
           break;
-        case 9:
+        case PICK_NOVELTYPLUS:
           NoveltyProm();
           if (iNumDecPromVars > 1) {
             if (RandomProb(iPromWp))
               iFlipCandidate = aDecPromVarsList[RandomInt(iNumDecPromVars)];
           }
           break;
-        case 10:
+        case PICK_NOVELTYPLUSPLUSPRIME:
           NoveltyProm();
           if (iNumDecPromVars > 1) {
             if (RandomProb(iPromDp)) {
@@ -940,13 +950,12 @@ void PickSatenstein() {
             }
           }
           break;
-        case 11:
+        case PICK_NOVELTYPLUSP:
           NoveltyPromisingProm();
           break;
 
-        case 12:
+        case PICK_DCCA:
           DCCAProm();
-
 
       }
     }

@@ -4712,7 +4712,7 @@ void FlipTrackChangesFCL() {
     /*This method of update is observed in 
     GNovelty+ */
 
-  if (iUpdateSchemePromList == GNOVELTYPLUS) {
+  if (iUpdateSchemePromList == UPDATE_GNOVELTYPLUS) {
     iNumNeighbor = aNumVarsShareClause[iFlipCandidate];
     pNeighbor = pVarsShareClause[iFlipCandidate];
     for (j = 0; j < iNumNeighbor; j++) {
@@ -4818,7 +4818,7 @@ void FlipTrackChangesFCL() {
     pClause++;
   }
 
-  if (iUpdateSchemePromList == GNOVELTYPLUS) {
+  if (iUpdateSchemePromList == UPDATE_GNOVELTYPLUS) {
     iNumNeighbor = aNumVarsShareClause[iFlipCandidate];
     pNeighbor = pVarsShareClause[iFlipCandidate];
     for (j = 0; j < iNumNeighbor; j++) {
@@ -4989,7 +4989,7 @@ void UpdateDecPromVars() {
 
   switch (iUpdateSchemePromList) {
 
-    case G2WSAT_1:
+    case UPDATE_G2WSAT_1:
 
       for (j = 0; j < iNumChanges; j++) {
         iVar = aChangeList[j];
@@ -5024,7 +5024,7 @@ void UpdateDecPromVars() {
 
       break;
 
-    case G2WSAT_2:
+    case UPDATE_G2WSAT_2:
 
       for (j = 0; j < iNumChanges; j++) {
         iVar = aChangeList[j];
@@ -5054,7 +5054,7 @@ void UpdateDecPromVars() {
 
       break;
 
-    case DCCA:
+    case UPDATE_DCCA:
       // TODO: implement
       break;
 

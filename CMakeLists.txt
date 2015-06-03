@@ -41,4 +41,4 @@ set(SOURCE_FILES
                     src/dcca.c
 )
 
-add_executable(ubcsat ${SOURCE_FILES})
+add_executable(ubcsat ${SOURCE_FILES} src/satenstein-types.h)

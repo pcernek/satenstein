@@ -24,6 +24,7 @@
 
 
 #include "ubcsat.h"
+#include "satenstein-types.h"
 
 extern UINT32 *aVarLastSatisfied;
 
@@ -4711,7 +4712,7 @@ void FlipTrackChangesFCL() {
     /*This method of update is observed in 
     GNovelty+ */
 
-  if (iUpdateSchemePromList == 3) {
+  if (iUpdateSchemePromList == GNOVELTYPLUS) {
     iNumNeighbor = aNumVarsShareClause[iFlipCandidate];
     pNeighbor = pVarsShareClause[iFlipCandidate];
     for (j = 0; j < iNumNeighbor; j++) {
@@ -4767,6 +4768,7 @@ void FlipTrackChangesFCL() {
     }
 
     // added by SATenstein
+    // if the clause has just a single true literal remaining...
     if (aNumTrueLit[*pClause] == 1) {
       pLit = pClauseLits[*pClause];
       for (k = 0; k < aClauseLen[*pClause]; k++) {
@@ -4815,7 +4817,8 @@ void FlipTrackChangesFCL() {
     }
     pClause++;
   }
-  if (iUpdateSchemePromList == 3) {
+
+  if (iUpdateSchemePromList == GNOVELTYPLUS) {
     iNumNeighbor = aNumVarsShareClause[iFlipCandidate];
     pNeighbor = pVarsShareClause[iFlipCandidate];
     for (j = 0; j < iNumNeighbor; j++) {
@@ -4986,71 +4989,78 @@ void UpdateDecPromVars() {
 
   switch (iUpdateSchemePromList) {
 
-      case 1: // Select by highest score, breaking ties in favor of least recently flipped var
+    case G2WSAT_1:
 
-          for (j = 0; j < iNumChanges; j++) {
-            iVar = aChangeList[j];
-            if ((aVarScore[iVar] < 0) && (aChangeOldScore[iVar] >= 0)) {
-              aDecPromVarsListPos[iVar] = iNumDecPromVars;
-              aDecPromVarsList[iNumDecPromVars++] = iVar;
-              aIsDecPromVar[iVar] = TRUE;
+      for (j = 0; j < iNumChanges; j++) {
+        iVar = aChangeList[j];
+        if ((aVarScore[iVar] < 0) && (aChangeOldScore[iVar] >= 0)) {
+          aDecPromVarsListPos[iVar] = iNumDecPromVars;
+          aDecPromVarsList[iNumDecPromVars++] = iVar;
+          aIsDecPromVar[iVar] = TRUE;
 
-            }
-          }
+        }
+      }
 
-          j = 0;
-          k = 0;
+      j = 0;
+      k = 0;
 
-          if (aIsDecPromVar[iFlipCandidate]) {
-            /* A variable just flipped at the last step cannot be
-               a promising decreasing variable.
-               Thats why the variable is swapped with the last
-               variable of the promising decreasing variable list.
-               The position of the swapped variable is also
-               updated.
-               Because of this change the flip performance of Satenstein Version 1.2
-               will not be identical for Satenstein for a particular random seed.
-           */
+      if (aIsDecPromVar[iFlipCandidate]) {
+        /* A variable just flipped at the last step cannot be
+           a promising decreasing variable.
+           Thats why the variable is swapped with the last
+           variable of the promising decreasing variable list.
+           The position of the swapped variable is also
+           updated.
+           Because of this change the flip performance of Satenstein Version 1.2
+           will not be identical for Satenstein for a particular random seed.
+       */
 
-            j = aDecPromVarsListPos[iFlipCandidate];
-            iNumDecPromVars--;
-            aDecPromVarsList[j] = aDecPromVarsList[iNumDecPromVars];
-            aDecPromVarsListPos[aDecPromVarsList[j]] = j;
-            aIsDecPromVar[iFlipCandidate] = FALSE;
-          }
+        j = aDecPromVarsListPos[iFlipCandidate];
+        iNumDecPromVars--;
+        aDecPromVarsList[j] = aDecPromVarsList[iNumDecPromVars];
+        aDecPromVarsListPos[aDecPromVarsList[j]] = j;
+        aIsDecPromVar[iFlipCandidate] = FALSE;
+      }
 
-          break;
+      break;
 
-      case 2: // select least recently flipped var
+    case G2WSAT_2:
 
-          for (j = 0; j < iNumChanges; j++) {
-            iVar = aChangeList[j];
-            if ((aVarScore[iVar] < 0) && (aChangeOldScore[iVar] >= 0)) {
-              aDecPromVarsListPos[iVar] = iNumDecPromVars;
-              aDecPromVarsList[iNumDecPromVars++] = iVar;
-              aIsDecPromVar[iVar] = TRUE;
+      for (j = 0; j < iNumChanges; j++) {
+        iVar = aChangeList[j];
+        if ((aVarScore[iVar] < 0) && (aChangeOldScore[iVar] >= 0)) {
+          aDecPromVarsListPos[iVar] = iNumDecPromVars;
+          aDecPromVarsList[iNumDecPromVars++] = iVar;
+          aIsDecPromVar[iVar] = TRUE;
 
-            }
-          }
+        }
+      }
 
-          j = 0;
-          k = 0;
+      j = 0;
+      k = 0;
 
-          while (j < iNumDecPromVars) {
-            iVar = aDecPromVarsList[k];
-            if ((aVarScore[iVar] >= 0) || (iVar == iFlipCandidate)) {
-              iNumDecPromVars--;
-              aIsDecPromVar[j] = FALSE;
-            } else {
-              aDecPromVarsList[j] = aDecPromVarsList[k];
-              aDecPromVarsListPos[iVar] = j;
-              j++;
-            }
-            k++;
-          }
+      while (j < iNumDecPromVars) {
+        iVar = aDecPromVarsList[k];
+        if ((aVarScore[iVar] >= 0) || (iVar == iFlipCandidate)) {
+          iNumDecPromVars--;
+          aIsDecPromVar[j] = FALSE;
+        } else {
+          aDecPromVarsList[j] = aDecPromVarsList[k];
+          aDecPromVarsListPos[iVar] = j;
+          j++;
+        }
+        k++;
+      }
 
-          break;
+      break;
 
+    case DCCA:
+      // TODO: implement
+      break;
+
+    default:
+      // do nothing
+      break;
   }
 }
 

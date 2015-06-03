@@ -298,7 +298,9 @@ void EnableDisableTrigger() {
     DeActivateTriggers("VarScore,VarPenScore");
   }
 
-
+  /**
+   * Choose a flipping scheme
+   */
   if (((bPerformRandomWalk) && (iRandomStep == 2)) || ((bPromisingList) || ((bSingleClause) && (iHeuristic > 9)))) {
     if (bPen) {
       ActivateTriggers("Flip+TrackChanges+FCLPen");
@@ -2115,7 +2117,7 @@ void NoveltyPromisingProm() {
     /* otherwise, determine the 'look ahead' score for the 2nd best variable */
 
     iSecondBestLookAheadScore = bPen ? aVarPenScore[iSecondBestPromVar] + BestLookAheadPenScore(iSecondBestPromVar) :
-                                aVarScore[iSecondBestPromVar] + BestLookAheadScore(iSecondBestPromVar);
+                                          aVarScore[iSecondBestPromVar] + BestLookAheadScore(iSecondBestPromVar);
 
     if (iSecondBestLookAheadScore > iBestScore) {
       iBestLookAheadScore = iBestScore;
@@ -2125,7 +2127,7 @@ void NoveltyPromisingProm() {
          for the best variable, calculate the look ahead score for the best variable */
 
       iBestLookAheadScore = bPen ? aVarPenScore[iFlipCandidate] + BestLookAheadPenScore(iFlipCandidate) :
-                            aVarScore[iFlipCandidate] + BestLookAheadScore(iFlipCandidate);
+                                      aVarScore[iFlipCandidate] + BestLookAheadScore(iFlipCandidate);
     }
 
     /* choose the variable with the best look ahead score */

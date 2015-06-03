@@ -841,7 +841,8 @@ void PickNoveltyPromising()
 
       /* otherwise, determine the 'look ahead' score for the 2nd best variable */
 
-      iSecondBestLookAheadScore = bPen ? aVarPenScore[iSecondBestVar] + BestLookAheadPenScore(iSecondBestVar): aVarScore[iSecondBestVar] + BestLookAheadScore(iSecondBestVar);
+      iSecondBestLookAheadScore = bPen ? aVarPenScore[iSecondBestVar] + BestLookAheadPenScore(iSecondBestVar):
+                                            aVarScore[iSecondBestVar] + BestLookAheadScore(iSecondBestVar);
 
       if (iSecondBestLookAheadScore > iBestScore) {
         iBestLookAheadScore = iBestScore;
@@ -850,7 +851,8 @@ void PickNoveltyPromising()
         /* if the 'look ahead' score for the 2nd variable is better than the regular score
            for the best variable, calculate the look ahead score for the best variable */
 
-        iBestLookAheadScore =bPen ?  aVarPenScore[iFlipCandidate] + BestLookAheadPenScore(iFlipCandidate) : aVarScore[iFlipCandidate] + BestLookAheadScore(iFlipCandidate);
+        iBestLookAheadScore =bPen ?  aVarPenScore[iFlipCandidate] + BestLookAheadPenScore(iFlipCandidate) :
+                                        aVarScore[iFlipCandidate] + BestLookAheadScore(iFlipCandidate);
       }
 
       /* choose the variable with the best look ahead score */
@@ -1704,7 +1706,7 @@ void PickNoveltyPlusPlusPrimePromising()
       /* otherwise, determine the 'look ahead' score for the 2nd best variable */
 
       iSecondBestLookAheadScore = bPen ? aVarPenScore[iSecondBestVar] + BestLookAheadPenScore(iSecondBestVar) :
-                                  aVarScore[iSecondBestVar] + BestLookAheadScore(iSecondBestVar);
+                                            aVarScore[iSecondBestVar] + BestLookAheadScore(iSecondBestVar);
 
       if (iSecondBestLookAheadScore > iBestScore) {
         iBestLookAheadScore = iBestScore;
@@ -1714,7 +1716,7 @@ void PickNoveltyPlusPlusPrimePromising()
            for the best variable, calculate the look ahead score for the best variable */
 
         iBestLookAheadScore = bPen ? aVarPenScore[iFlipCandidate] + BestLookAheadPenScore(iFlipCandidate) :
-                              aVarScore[iFlipCandidate] + BestLookAheadScore(iFlipCandidate);
+                                        aVarScore[iFlipCandidate] + BestLookAheadScore(iFlipCandidate);
       }
 
       /* choose the variable with the best look ahead score */

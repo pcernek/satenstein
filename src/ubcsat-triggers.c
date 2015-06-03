@@ -231,6 +231,10 @@ void CreateDecPromVars();
 void InitDecPromVars();
 void UpdateDecPromVars();
 
+void CreateConfCheckingVars();
+void InitConfCheckingVars();
+void UpdateConfCheckingVars();
+
 void CreateDecPromPenVars();
 void InitDecPromPenVars();
 void UpdateDecPromPenVars();
@@ -240,6 +244,21 @@ UINT32 *aDecPromVarsList;
 UINT32 *aDecPromVarsListPos;
 BOOL *aIsDecPromVar;
 UINT32 iNumDecPromVars;
+
+UINT32 *csdVarsList;
+BOOL *isCSDvar;
+UINT32 *csdVarsListPos;
+UINT32 iNumCSDvars;
+
+UINT32 *nvdVarsList;
+BOOL *isNVDvar;
+UINT32 *nvdVarsListPos;
+UINT32 iNumNVDvars;
+
+UINT32 *sdVarsList;
+BOOL *isSDvar;
+UINT32 *sdVarsListPos;
+UINT32 iNumSDvars;
 
 
 
@@ -692,6 +711,8 @@ void CheckWeighted();
 
 void CreateUniqueSolutions();
 void UpdateUniqueSolutions();
+
+void CreateConfCheckingVars();
 
 VARSTATELIST vslUnique;
 VARSTATE vsCheckUnique;
@@ -4690,38 +4711,50 @@ void FlipTrackChangesFCL() {
     /*This method of update is observed in 
     GNovelty+ */
 
-  if(iUpdateSchemePromList == 3)
-  {
-  iNumNeighbor = aNumVarsShareClause[iFlipCandidate];
-  pNeighbor = pVarsShareClause[iFlipCandidate];
-  for(j = 0; j <iNumNeighbor; j++){
-  iVar = *pNeighbor;
-  if(aVarScore[iVar] >=0)
-  aIsDecPromVar[iVar] = FALSE;
-  else
-  aIsDecPromVar[iVar] = TRUE;
-  pNeighbor++;
-  }
+  if (iUpdateSchemePromList == 3) {
+    iNumNeighbor = aNumVarsShareClause[iFlipCandidate];
+    pNeighbor = pVarsShareClause[iFlipCandidate];
+    for (j = 0; j < iNumNeighbor; j++) {
+      iVar = *pNeighbor;
+      if (aVarScore[iVar] >= 0)
+        aIsDecPromVar[iVar] = FALSE;
+      else
+        aIsDecPromVar[iVar] = TRUE;
+      pNeighbor++;
+    }
   }
   iNumChanges = 0;
 
+  // get the indices of the literals for the variable we're about to flip,
+  //  distinguishing between the ones that were previously true
+  //  and those that were previously false
   litWasTrue = GetTrueLit(iFlipCandidate);
   litWasFalse = GetFalseLit(iFlipCandidate);
 
-  aVarValue[iFlipCandidate] = 1 - aVarValue[iFlipCandidate];
+  // Flip the candidate!!!
+  aVarValue[iFlipCandidate] = !aVarValue[iFlipCandidate];
 
+  // pClause is a pointer to the list of clauses containing literals that were TRUE
+  //  under the previous assignment of the variable that we have just flipped
   pClause = pLitClause[litWasTrue];
 
-  for (j=0;j<aNumLitOcc[litWasTrue];j++) {
+  // update the clauses containing the literal that was true under the previous assignment
+  for (j = 0; j < aNumLitOcc[litWasTrue]; j++) {
+    // since this literal was true, and we just flipped it,
+    //  now each clause that contained that literal has one less true literal
     aNumTrueLit[*pClause]--;
+
+    // if flipping the variable made this clause become unsat...
     if (aNumTrueLit[*pClause]==0) { 
-      
+
+      // add this clause to the list of false clauses
       aFalseList[iNumFalse] = *pClause;
       aFalseListPos[*pClause] = iNumFalse++;
 
+      // something added in by SATenstein
       fSumClauseVarFlipCount += fClauseVarFlipCounts[*pClause] + ((FLOAT)1 /(FLOAT) aClauseLen[*pClause]);;
-      
       UpdateChange(iFlipCandidate);
+
       aVarScore[iFlipCandidate]--;
 
       pLit = pClauseLits[*pClause];
@@ -4732,9 +4765,11 @@ void FlipTrackChangesFCL() {
         pLit++;
       }
     }
-    if (aNumTrueLit[*pClause]==1) {
+
+    // added by SATenstein
+    if (aNumTrueLit[*pClause] == 1) {
       pLit = pClauseLits[*pClause];
-      for (k=0;k<aClauseLen[*pClause];k++) {
+      for (k = 0; k < aClauseLen[*pClause]; k++) {
         if (IsLitTrue(*pLit)) {
           iVar = GetVarFromLit(*pLit);
           UpdateChange(iVar);
@@ -4745,10 +4780,14 @@ void FlipTrackChangesFCL() {
         pLit++;
       }
     }
+
     pClause++;
   }
 
+  // pClause is now a pointer to the list of clauses containing literals that were FALSE
+  //  under the previous assignment of the variable that we have just flipped
   pClause = pLitClause[litWasFalse];
+
   for (j=0;j<aNumLitOcc[litWasFalse];j++) {
     aNumTrueLit[*pClause]++;
     if (aNumTrueLit[*pClause]==1) {
@@ -4776,20 +4815,19 @@ void FlipTrackChangesFCL() {
     }
     pClause++;
   }
-  if(iUpdateSchemePromList == 3)
-  {
-  iNumNeighbor = aNumVarsShareClause[iFlipCandidate];
-  pNeighbor = pVarsShareClause[iFlipCandidate];
-  for(j = 0; j <iNumNeighbor; j++){
-  iVar = *pNeighbor;
-  if((aVarScore[iVar] < 0) && !aIsDecPromVar[iVar]){
-  aIsDecPromVar[iVar] = TRUE;
-  aDecPromVarsListPos[iVar] = iNumDecPromVars;
-  aDecPromVarsList[iNumDecPromVars++] = iVar;
+  if (iUpdateSchemePromList == 3) {
+    iNumNeighbor = aNumVarsShareClause[iFlipCandidate];
+    pNeighbor = pVarsShareClause[iFlipCandidate];
+    for (j = 0; j < iNumNeighbor; j++) {
+      iVar = *pNeighbor;
+      if ((aVarScore[iVar] < 0) && !aIsDecPromVar[iVar]) {
+        aIsDecPromVar[iVar] = TRUE;
+        aDecPromVarsListPos[iVar] = iNumDecPromVars;
+        aDecPromVarsList[iNumDecPromVars++] = iVar;
+      }
+      pNeighbor++;
+    }
   }
-  pNeighbor++;
-  }
- }
  
 }
 
@@ -4888,9 +4926,27 @@ void CreateDecPromVars() {
   aIsDecPromVar = AllocateRAM((iNumVars+1) * sizeof(BOOL));
   aDecPromVarsListPos = AllocateRAM((iNumVars+1) * sizeof(UINT32));
 
+  CreateConfCheckingVars();
+
+}
+
+void CreateConfCheckingVars() {
+  csdVarsList = AllocateRAM((iNumVars+1) * sizeof(UINT32));
+  isCSDvar = AllocateRAM((iNumVars+1) * sizeof(BOOL));
+  csdVarsListPos = AllocateRAM((iNumVars+1) * sizeof(UINT32));
+
+  nvdVarsList = AllocateRAM((iNumVars+1) * sizeof(UINT32));
+  isNVDvar = AllocateRAM((iNumVars+1) * sizeof(BOOL));
+  nvdVarsListPos = AllocateRAM((iNumVars+1) * sizeof(UINT32));
+
+  sdVarsList = AllocateRAM((iNumVars+1) * sizeof(UINT32));
+  isSDvar = AllocateRAM((iNumVars+1) * sizeof(BOOL));
+  sdVarsListPos = AllocateRAM((iNumVars+1) * sizeof(UINT32));
 }
 
 void InitDecPromVars() {
+
+  InitConfCheckingVars();
 
   UINT32 j;
 
@@ -4908,6 +4964,21 @@ void InitDecPromVars() {
   }
 }
 
+void InitConfCheckingVars() {
+  UINT32 j;
+
+  iNumCSDvars = 0;
+  iNumNVDvars = 0;
+  iNumSDvars = 0;
+
+  for (j = 1; j <= iNumVars; j++) {
+    isCSDvar[j] = FALSE;
+    isNVDvar[j] = FALSE;
+    isSDvar[j] = FALSE;
+
+  }
+}
+
 void UpdateDecPromVars() {
 
   UINT32 j, k;
@@ -4915,7 +4986,7 @@ void UpdateDecPromVars() {
 
   switch (iUpdateSchemePromList) {
 
-      case 1:
+      case 1: // Select by highest score, breaking ties in favor of least recently flipped var
 
           for (j = 0; j < iNumChanges; j++) {
             iVar = aChangeList[j];
@@ -4950,7 +5021,7 @@ void UpdateDecPromVars() {
 
           break;
 
-      case 2:
+      case 2: // select least recently flipped var
 
           for (j = 0; j < iNumChanges; j++) {
             iVar = aChangeList[j];
@@ -4983,11 +5054,12 @@ void UpdateDecPromVars() {
   }
 }
 
-void CreateDecPromPenVars() {
+void UpdateConfCheckingVars() {
 
-  aDecPromVarsList = AllocateRAM((iNumVars+1) * sizeof(UINT32));
-  aIsDecPromVar = AllocateRAM((iNumVars+1) * sizeof(BOOL));
-  aDecPromVarsListPos = AllocateRAM((iNumVars+1) * sizeof(UINT32));
+}
+
+void CreateDecPromPenVars() {
+  CreateDecPromVars();
 }
 
 void InitDecPromPenVars() {
@@ -4996,7 +5068,16 @@ void InitDecPromPenVars() {
 
   iNumDecPromVars = 0;
 
+  iNumCSDvars = 0;
+  iNumNVDvars = 0;
+  iNumSDvars = 0;
+
   for (j=1;j<=iNumVars;j++) {
+
+    isCSDvar[j]= FALSE;
+    isNVDvar[j] = FALSE;
+    isSDvar[j] = FALSE;
+
     if (aVarPenScore[j] < 0) {
       aDecPromVarsListPos[j] = iNumDecPromVars;
       aDecPromVarsList[iNumDecPromVars] = j;
@@ -5011,82 +5092,81 @@ void InitDecPromPenVars() {
 }
 
 void UpdateDecPromPenVars() {
-  UINT32 j,k;
+  UINT32 j, k;
   UINT32 iVar;
-  switch(iUpdateSchemePromList){
-  case 1:  for (j=0;j<iNumChanges;j++) {
-            iVar = aChangeList[j];
-            if ((aVarPenScore[iVar] < 0)&&(aChangeOldScore[iVar] >= 0)) {
-             aDecPromVarsListPos[iVar] = iNumDecPromVars;
-             aDecPromVarsList[iNumDecPromVars++] = iVar;
-             aIsDecPromVar[iVar]= TRUE;
+  switch (iUpdateSchemePromList) {
+    case 1:
+      for (j = 0; j < iNumChanges; j++) {
+        iVar = aChangeList[j];
+        if ((aVarPenScore[iVar] < 0) && (aChangeOldScore[iVar] >= 0)) {
+          aDecPromVarsListPos[iVar] = iNumDecPromVars;
+          aDecPromVarsList[iNumDecPromVars++] = iVar;
+          aIsDecPromVar[iVar] = TRUE;
 
-            }
-          }
-  j=0;
-  k=0;
+        }
+      }
+      j = 0;
+      k = 0;
 
-  if(aIsDecPromVar[iFlipCandidate])
-  {
-  /* A variable just flipped at the last step cannot be 
-     a promising decreasing variable.
-     Thats why the variable is swapped with the last 
-     variable of the promising decreasing variable list. 
-     The position of the swapped variable is also 
-     updated.
-     Because of this change the flip performance of Satenstein Version 1.2
-     will not be identical for Satenstein for a particular random seed. 
- */
+      if (aIsDecPromVar[iFlipCandidate]) {
+        /* A variable just flipped at the last step cannot be
+           a promising decreasing variable.
+           Thats why the variable is swapped with the last
+           variable of the promising decreasing variable list.
+           The position of the swapped variable is also
+           updated.
+           Because of this change the flip performance of Satenstein Version 1.2
+           will not be identical for Satenstein for a particular random seed.
+       */
 
-    j = aDecPromVarsListPos[iFlipCandidate];
-    iNumDecPromVars--;
-    aDecPromVarsList[j] = aDecPromVarsList[iNumDecPromVars];
-    aDecPromVarsListPos[aDecPromVarsList[j]]=j;
-    aIsDecPromVar[iFlipCandidate] = FALSE;
-  }
+        j = aDecPromVarsListPos[iFlipCandidate];
+        iNumDecPromVars--;
+        aDecPromVarsList[j] = aDecPromVarsList[iNumDecPromVars];
+        aDecPromVarsListPos[aDecPromVarsList[j]] = j;
+        aIsDecPromVar[iFlipCandidate] = FALSE;
+      }
 
 
-   break;
+      break;
 
- case 2:  for (j=0;j<iNumChanges;j++) {
-            iVar = aChangeList[j];
-            if ((aVarPenScore[iVar] < 0)&&(aChangeOldScore[iVar] >= 0)) {
-             aDecPromVarsListPos[iVar] = iNumDecPromVars;
-             aDecPromVarsList[iNumDecPromVars++] = iVar;
-             aIsDecPromVar[iVar]= TRUE;
+    case 2:
+      for (j = 0; j < iNumChanges; j++) {
+        iVar = aChangeList[j];
+        if ((aVarPenScore[iVar] < 0) && (aChangeOldScore[iVar] >= 0)) {
+          aDecPromVarsListPos[iVar] = iNumDecPromVars;
+          aDecPromVarsList[iNumDecPromVars++] = iVar;
+          aIsDecPromVar[iVar] = TRUE;
 
-            }
-          }
-          j=0;
-          k=0;
-           while (j < iNumDecPromVars) {
-            iVar = aDecPromVarsList[k];
-            if ((aVarPenScore[iVar] >= 0)||(iVar == iFlipCandidate)) {
-             iNumDecPromVars--;
-             aIsDecPromVar[j]= FALSE;
-           } else {
-          aDecPromVarsList[j]=aDecPromVarsList[k];
+        }
+      }
+      j = 0;
+      k = 0;
+      while (j < iNumDecPromVars) {
+        iVar = aDecPromVarsList[k];
+        if ((aVarPenScore[iVar] >= 0) || (iVar == iFlipCandidate)) {
+          iNumDecPromVars--;
+          aIsDecPromVar[j] = FALSE;
+        } else {
+          aDecPromVarsList[j] = aDecPromVarsList[k];
           aDecPromVarsListPos[iVar] = j;
           j++;
-    }
-    k++;
+        }
+        k++;
+      }
+
+      break;
+
+
   }
-
-  break;
-
-
- }
 
 }
 
 void CreateTrackPenChanges() {
-  aChangeList = AllocateRAM((iNumVars+1) * sizeof(UINT32));
-  aChangeLastStep = AllocateRAM((iNumVars+1) * sizeof(UINT32));
-  aChangeOldScore = AllocateRAM((iNumVars+1) * sizeof(UINT32));
+  CreateTrackChanges();
 }
 
 void InitTrackPenChanges() {
-  memset(aChangeLastStep,0,(iNumVars+1) * sizeof(UINT32));
+  InitTrackChanges();
 }
 
 void UpdateTrackPenChanges() {

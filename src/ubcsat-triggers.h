@@ -621,6 +621,22 @@ extern UINT32 *aDecPromVarsListPos;
 extern UINT32 iNumDecPromVars;
 extern BOOL *aIsDecPromVar;
 
+/***** promising variable lists for DCCA ******/
+extern UINT32 *csdVarsList;
+extern BOOL *isCSDvar;
+extern UINT32 *csdVarsListPos;
+extern UINT32 iNumCSDvars;
+
+extern UINT32 *nvdVarsList;
+extern BOOL *isNVDvar;
+extern UINT32 *nvdVarsListPos;
+extern UINT32 iNumNVDvars;
+
+extern UINT32 *sdVarsList;
+extern BOOL *isSDvar;
+extern UINT32 *sdVarsListPos;
+extern UINT32 iNumSDvars;
+
 extern UINT32 iNumWeighted;
 extern UINT32 *aWeightedList;
 extern UINT32 *aWhereWeight;

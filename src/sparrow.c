@@ -408,8 +408,8 @@ void FlipSparrow() {
 }
 
 void CreateSparrowPromVars() {
-  aSparrowPromVars = (UINT32 *) AllocateRAM((iNumVars+1) * sizeof(UINT32), HeapData);
-  aVarIsGNovCandVar = (BOOL *) AllocateRAM((iNumVars+1) * sizeof(BOOL), HeapData);
+  aSparrowPromVars = (UINT32 *) AllocateRAM((iNumVars+1) * sizeof(UINT32));
+  aVarIsGNovCandVar = (BOOL *) AllocateRAM((iNumVars+1) * sizeof(BOOL));
 }
 
 void InitSparrowPromVars() {
@@ -429,12 +429,12 @@ void InitSparrowPromVars() {
 }
 
 void CreateSparrowWeights() {
-  aSparrowWeights = (FLOAT *) AllocateRAM((iMaxClauseLen+1)*sizeof(FLOAT), HeapData);
+  aSparrowWeights = (FLOAT *) AllocateRAM((iMaxClauseLen+1)*sizeof(FLOAT));
 }
 
 void CreateSparrowScore() {
-  aSparrowScore = (SINT32 *) AllocateRAM((iNumVars+1)*sizeof(UINT32), HeapData);
-  aCritSat = (UINT32 *) AllocateRAM(iNumClauses*sizeof(UINT32), HeapData);
+  aSparrowScore = (SINT32 *) AllocateRAM((iNumVars+1)*sizeof(UINT32));
+  aCritSat = (UINT32 *) AllocateRAM(iNumClauses*sizeof(UINT32));
 }
 
 void InitSparrowScore() {

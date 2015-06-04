@@ -610,6 +610,17 @@ extern UINT32 iNumUniqueSolutions;
 extern UINT32 iLastUnique;
 
 
+/***** Trigger VarsShareClauses *****/
+/*
+    aNumVarsShareClause[j]  number of vars that share a clause with var j
+    pVarsShareClause[j][k]  kth var that shares a clause with var j
+*/
+
+extern UINT32 *aNumVarsShareClause;
+extern UINT32 **pVarsShareClause;
+
+
+
 /***** Trigger FlipCounts *****/
 /*
    fClauseVarFlipCounts[j]        # average flipcount of a clause

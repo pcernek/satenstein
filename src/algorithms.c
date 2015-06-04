@@ -67,6 +67,8 @@ void AddAlgorithms() {
 
   AddDDFW();
 
+  AddSparrow();
+
   AddSatenstein();
   AddAdaptG2WSatPlus();
 

@@ -166,6 +166,9 @@ extern PROBABILITY iPromWp;
 extern UINT32 iScoringMeasure;
 UINT32 TieBreaking();
 
+/* sparrow.c */
+void AddSparrow();
+
 /* rots.c */
 
 void AddRoTS();

@@ -38,7 +38,10 @@ set(SOURCE_FILES
                     src/vw.c
                     src/walksat.c
                     src/walksat-tabu.c
+
                     src/dcca.c
+                    src/satenstein-types.h
+                    src/sparrow.c
 )
 
-add_executable(ubcsat ${SOURCE_FILES} src/satenstein-types.h)
+add_executable(ubcsat ${SOURCE_FILES})

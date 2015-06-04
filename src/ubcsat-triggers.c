@@ -43,6 +43,7 @@ UINT32 iNumLits;
 
 UINT32 *aClauseLen;
 LITTYPE **pClauseLits;
+UINT32 iMaxClauseLen;
 
 FLOAT *aClauseWeight;
 FLOAT fTotalWeight;
@@ -1098,6 +1099,8 @@ void ReadCNF() {
   pLastLit = pNextLit = pData = 0;
 
   iNumLits = 0;
+  iMaxClauseLen = 0;
+
 
   for (j=0;j<iNumClauses;j++) {
 
@@ -1164,6 +1167,10 @@ void ReadCNF() {
         iNumLits++;
       }
     } while (l != 0);
+
+    if (aClauseLen[j] > iMaxClauseLen) {
+      iMaxClauseLen = aClauseLen[j];
+    }
 
     if (aClauseLen[j] == 0) {
       ReportPrint1(pRepErr,"Error: Reading .cnf, clause [%u] is empty\n",j);

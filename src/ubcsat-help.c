@@ -22,6 +22,9 @@
 
 #include "ubcsat.h"
 
+const char sVersion[] = "1.1.0tt2";
+
+
 /*  
   This file contains routines for displaying help 
 */

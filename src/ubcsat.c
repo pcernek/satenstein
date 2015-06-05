@@ -22,7 +22,7 @@
 
 #include "ubcsat.h"
 
-const char sVersion[] = "1.1.0tt2";
+
 
 int ubcsatmain(int argc, char *argv[]) {
   

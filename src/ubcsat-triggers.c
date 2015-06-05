@@ -25,7 +25,9 @@
 
 #include "ubcsat.h"
 
-/*  
+extern UINT32 *aVarLastSatisfied;
+
+/*
     This file contains the code to make the various data triggers work
 */
 void SpecialUpdate();
@@ -77,6 +79,16 @@ UINT32 *aVarInit;
 UINT32 iInitVarFlip;
 BOOL bVarInitGreedy;
 
+
+/***** Trigger InitVarLastSatisfied *****/
+/***** Trigger CreateVarLastSatisfied *****/
+/***** Trigger UpdateVarLastSatisfied *****/
+
+void InitVarLastSatisfied();
+void CreateVarLastSatisfied();
+void UpdateVarLastSatisfied();
+
+UINT32 *aVarLastSatisfied;
 
 /***** Trigger DefaultStateInfo *****/
 
@@ -890,6 +902,11 @@ void AddDataTriggers() {
   CreateContainerTrigger("FlipCounts","InitFlipCounts,CreateFlipCounts,UpdateFlipCounts");
 
   CreateTrigger("FlipCountStats",RunCalculations,FlipCountStats,"FlipCounts","");
+
+  CreateTrigger("CreateVarLastSatisfied",CreateStateInfo,CreateVarLastSatisfied,"","");
+  CreateTrigger("InitVarLastSatisfied",InitStateInfo,InitVarLastSatisfied,"","");
+  CreateTrigger("UpdateVarLastSatisfied",PostStep,UpdateVarLastSatisfied,"","");
+  CreateContainerTrigger("VarLastSatisfied","CreateVarLastSatisfied,InitVarLastSatisfied,UpdateVarLastSatisfied");
 
   CreateTrigger("CreateClauseVarFlipCounts",CreateStateInfo,CreateClauseVarFlipCounts,"","");
   CreateTrigger("InitClauseVarFlipCounts",InitStateInfo,InitClauseVarFlipCounts,"","");
@@ -4618,7 +4635,38 @@ void UpdateUniqueSolutions() {
 }
 
 
+void CreateVarLastSatisfied() {
+  aVarLastSatisfied = AllocateRAM(iNumClauses*sizeof(UINT32));
+}
 
+void InitVarLastSatisfied() {
+  memset(aVarLastSatisfied,0,iNumClauses*sizeof(UINT32));
+}
+
+void UpdateVarLastSatisfied() {
+  UINT32 j;
+  UINT32 k;
+  UINT32 *pClause;
+  UINT32 iVar;
+  LITTYPE litWasTrue;
+  LITTYPE litWasFalse;
+  LITTYPE *pLit;
+
+  if (iFlipCandidate == 0) {
+    return;
+  }
+
+  litWasFalse = GetTrueLit(iFlipCandidate);
+
+  pClause = pLitClause[litWasFalse];
+  for (j=0;j<aNumLitOcc[litWasFalse];j++) {
+    if (aNumTrueLit[*pClause]==1) {
+      aVarLastSatisfied[*pClause] = iFlipCandidate;
+    }
+    pClause++;
+  }
+
+}
 
 
 

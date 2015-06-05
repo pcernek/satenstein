@@ -81,7 +81,7 @@ void AddSatenstein() {
     "Generalized local search algorithm",
     "Yet to be published",
     "PickSatenstein,InitRSAPS,PostFlipRSAPS,PostFlipSAPS,PostFlipPAWS",
-    "DefaultProcedures,AdaptPromNoveltyNoise,Flip+TrackChanges+FCL,Flip+FalseClauseList,DecPromVars,FalseClauseList,VarLastChange,MakeBreak,AdaptNoveltyPlusNoise,FlipCounts,LookAhead,EnableDisableTrigger,VarInFalse,VarScore,VW2Weights,Flip+MBPFL+FCL+VIF,ClauseVarFlipCounts,AutoVW2Weights,Flip+TrackChanges+FCLPen,DecPromPenVars,ClausePen,VarPenScore,WeightedList,VarsShareClauses,Flip+MBPINT+FCL+VIF,PenClauseList,SpecialUpdate,SpecialUpdateMakeBreak",
+    "DefaultProcedures,AdaptPromNoveltyNoise,Flip+TrackChanges+FCL,Flip+FalseClauseList,DecPromVars,FalseClauseList,VarLastChange,MakeBreak,AdaptNoveltyPlusNoise,VarLastSatisfied,FlipCounts,LookAhead,EnableDisableTrigger,VarInFalse,VarScore,VW2Weights,Flip+MBPFL+FCL+VIF,ClauseVarFlipCounts,AutoVW2Weights,Flip+TrackChanges+FCLPen,DecPromPenVars,ClausePen,VarPenScore,WeightedList,VarsShareClauses,Flip+MBPINT+FCL+VIF,PenClauseList,SpecialUpdate,SpecialUpdateMakeBreak",
     "default","default");
 
     CopyParameters(pCurAlg,"novelty+","",FALSE,0);
@@ -196,16 +196,26 @@ void EnableDisableTrigger() {
 
 
   if((((iHeuristic == 8)||(iHeuristic ==16))&&((bPromisingList)||(bSingleClause)))||(bPromisingList && iDecStrategy == 4)||(bPerformRandomWalk && iRandomStep ==5)||((iTieBreaking == 4)&&(bPromisingList &&((iDecStrategy ==1)||(iDecStrategy ==4))))){
-    if(bNoise)
+    if(bNoise){
     ActivateTriggers("AutoVW2Weights");
-    else
+    DeActivateTriggers("VW2Weights");}
+    else{
     ActivateTriggers("VW2Weights");
-    
+    DeActivateTriggers("AutoVW2Weights");}
   } else {
     DeActivateTriggers("VW2Weights,AutoVW2Weights");
   }
 
- //Lookahead is never required if promising variant is not used 
+ //VarlastSatisfied is only used if iHeuristic is 17 or 18
+ if((iHeuristic == 17)||(iHeuristic == 18))
+ {
+   //printf("I am activating");
+   ActivateTriggers("VarLastSatisfied");
+ } else {
+   DeActivateTriggers("VarLastSatisfied");
+ }
+
+ //Lookahead is never required if promising variant is not used
 
  if((iHeuristic > 9)&&((bPromisingList)||(bSingleClause))){
    ActivateTriggers("LookAhead");
@@ -1011,8 +1021,47 @@ if(bPerformNovelty)
      case 15:
              PickNoveltyPlusPromisingFC();
            break;
-    
-     
+     case 16:
+                  if (RandomProb(iDp)) {
+                   if (iNumFalse) {
+                   iClause = SelectClause();
+                   iClauseLen = aClauseLen[iClause];
+
+                   pLit = pClauseLits[iClause];
+
+                   iFlipCandidate = GetVarFromLit(*pLit);
+
+                   pLit++;
+
+                   for (j=1;j<iClauseLen;j++) {
+                    iVar = GetVarFromLit(*pLit);
+
+                     if (aVW2Weights[iVar] < aVW2Weights[iFlipCandidate]) {
+                      iFlipCandidate = iVar;
+	   }
+
+                  pLit++;
+                 }
+                } else {
+                  iFlipCandidate = 0;
+               }
+           } else {
+
+            /* otherwise, use regular novelty */
+            if(!bTabu)
+             PickNovelty();
+            else
+             PickNoveltyTabu();
+            }
+
+           break;
+
+     case 17: PickNoveltySattime();
+          break;
+
+     case 18: PickNoveltyPlusSattime();
+          break;
+
 
 	   }
    }
@@ -1166,6 +1215,12 @@ if(bPerformNovelty)
  
            break;
  
+     case 17: PickNoveltySattime();
+          break;
+
+     case 18: PickNoveltyPlusSattime();
+          break;
+
            }
    }
    else

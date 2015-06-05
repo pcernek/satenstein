@@ -630,3 +630,4 @@ extern SINT32 *aVarPenScore;
 extern UINT32 *aClausePen;
 
 extern BOOL bPen;
+extern UINT32 *aVarLastSatisfied;

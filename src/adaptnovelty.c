@@ -120,12 +120,14 @@ void InitAdaptNoveltyPlusNoise() {
 
 void AdaptNoveltyPlusNoise() {
   if(iAdaptiveNoiseScheme ==1 && bPerformNovelty &&bPromisingList)
-   return; 
+   {   //return;
+   }
   if (iStep-iLastAdaptStep > iNumClauses/iInvTheta) {
-    
+    //if (iStep-iLastAdaptStep > iNumClauses*0.2f) {
     /* if no improvement in a while, increase noise */
 
     iNovNoise += (PROBABILITY) ((0xFFFFFFFF - iNovNoise)/iInvPhi);
+    //iNovNoise += (PROBABILITY) ((0xFFFFFFFF - iNovNoise)*0.1f);
     iWpWalk += (PROBABILITY) ((0xFFFFFFFF - iWpWalk)/iInvPhi);
     intNovNoise += (int) ((100 - intNovNoise)/iInvPhi); 
     iLastAdaptStep = iStep;
@@ -142,6 +144,7 @@ void AdaptNoveltyPlusNoise() {
     /* if improving, then decrease noise */
 
     iNovNoise -= (PROBABILITY) (iNovNoise / iInvPhi / 2);
+    //iNovNoise -= (PROBABILITY) (iNovNoise *0.1f /2);
     iWpWalk -= (PROBABILITY) (iWpWalk / iInvPhi / 2);
     intNovNoise -= (int) (intNovNoise /iInvPhi / 2);
     /* note: this is how the original code was implemented: [wp := wp - wp * phi / 2] */
@@ -150,7 +153,7 @@ void AdaptNoveltyPlusNoise() {
     iLastAdaptStep = iStep;
     iLastAdaptNumFalse = iNumFalse;
     if(bAdaptWalkProb){	
-   iWp = iNovNoise/10;
+   iWp = iNovNoise / 10;
    iDp = iNovNoise/10;
    intDp = intNovNoise/10;
    }

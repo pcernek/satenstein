@@ -70,6 +70,9 @@ void PickNoveltyPlusPlusPromisingTabu();
 void PickNoveltyPlusFC();
 void PickNoveltyPlusPromisingFC();
 
+void PickNoveltySattime();
+void PickNoveltyPlusSattime();
+
 extern UINT32 SelectClause();
 
 
@@ -4060,3 +4063,139 @@ SINT32 BestLookAheadPenScore(UINT32 iLookVar) {
   }
 }
 
+
+void PickNoveltySattime() {
+
+
+
+  UINT32 i;
+  UINT32 j;
+  SINT32 iScore;
+  UINT32 iClause;
+  UINT32 iClauseLen;
+  LITTYPE *pLit;
+  UINT32 *pClause;
+  UINT32 iNumOcc;
+  UINT32 iVar;
+  UINT32 iYoungestVar;
+  SINT32 iSecondBestScore;
+  UINT32 iBestVar=0;
+  UINT32 iSecondBestVar=0;
+
+  iBestScore = iNumClauses;
+  iSecondBestScore = iNumClauses;
+
+  /* select an unsatisfied clause uniformly at random */
+
+  if (iNumFalse) {
+    iClause = aFalseList[RandomInt(iNumFalse)];
+    iClauseLen = aClauseLen[iClause];
+  } else {
+    iFlipCandidate = 0;
+    return;
+  }
+
+  pLit = pClauseLits[iClause];
+
+  iYoungestVar = GetVarFromLit(*pLit);
+
+  /* Note: for WalkSAT variants, it's faster to calculate the
+     score for each literal than to cache the values */
+
+  /* for each literal in the clause */
+
+  for (j=0;j<iClauseLen;j++) {
+
+    iScore = 0;
+    iVar = GetVarFromLit(*pLit);
+
+    iNumOcc = aNumLitOcc[*pLit];
+    pClause = pLitClause[*pLit];
+
+    /* for each appearance of the literal in a false clause,
+       decrease score by one (increase makecount) */
+
+    for (i=0;i<iNumOcc;i++) {
+      if (aNumTrueLit[*pClause]==0) {
+        iScore--;
+      }
+      pClause++;
+    }
+
+    /* for each appearance of the negated literal in a critially satisfied clause,
+       increase score by one (increase breakcount) */
+
+    iNumOcc = aNumLitOcc[GetNegatedLit(*pLit)];
+    pClause = pLitClause[GetNegatedLit(*pLit)];
+
+    for (i=0;i<iNumOcc;i++) {
+      if (aNumTrueLit[*pClause]==1) {
+        iScore++;
+      }
+      pClause++;
+    }
+
+    /* keep track of which literal was the 'youngest' */
+
+    if (aVarLastChange[iVar] > aVarLastChange[iYoungestVar]) {
+      iYoungestVar = iVar;
+    }
+
+    /* keep track of the 'best' and the 'second best' variables,
+       breaking ties by selecting the younger variables */
+
+    if ((iScore < iBestScore) || ((iScore == iBestScore) && (aVarLastChange[iVar] < aVarLastChange[iBestVar]))) {
+      iSecondBestVar = iBestVar;
+      iBestVar = iVar;
+      iSecondBestScore = iBestScore;
+      iBestScore = iScore;
+    } else if ((iScore < iSecondBestScore) || ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestVar]))) {
+      iSecondBestVar = iVar;
+      iSecondBestScore = iScore;
+    }
+
+    pLit++;
+  }
+
+  iFlipCandidate = iBestVar;
+
+  /* if the best is not the last satisfied, select it */
+
+  if (iFlipCandidate != aVarLastSatisfied[iClause]) {
+    return;
+  }
+
+  /* otherwise, choose the second best with probability (novnoise) */
+
+  if (RandomProb(iNovNoise)) {
+    iFlipCandidate = iSecondBestVar;
+  }
+}
+
+void PickNoveltyPlusSattime()
+{
+
+  UINT32 iClause;
+  UINT32 iClauseLen;
+  LITTYPE litPick;
+
+  /* with probability (iWp) uniformly choose an unsatisfied clause,
+     and then uniformly choose a literal from that clause */
+
+  if (RandomProb(iWp)) {
+
+    if (iNumFalse) {
+      iClause = aFalseList[RandomInt(iNumFalse)];
+      iClauseLen = aClauseLen[iClause];
+      litPick = (pClauseLits[iClause][RandomInt(iClauseLen)]);
+      iFlipCandidate = GetVarFromLit(litPick);
+    } else {
+      iFlipCandidate = 0;
+    }
+  } else {
+
+    /* otherwise, use regular noveltySattime */
+
+    PickNoveltySattime();
+  }
+}

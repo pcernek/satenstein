@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 project(SATenstein)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32 -O3 -lm ")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -lm -w")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
+include_directories( src )
 
 set(SOURCE_FILES
                     src/adaptg2wsatplus.c
@@ -28,7 +31,6 @@ set(SOURCE_FILES
                     src/rots.c
                     src/samd.c
                     src/saps.c
-                    src/ubcsat.c
                     src/ubcsat-help.c
                     src/ubcsat-internal.c
                     src/ubcsat-io.c
@@ -45,4 +47,18 @@ set(SOURCE_FILES
                     src/sparrow.c
 )
 
-add_executable(ubcsat ${SOURCE_FILES})
+include_directories( test )
+
+set(TEST_FILES ${SOURCE_FILES}
+                test/DccaTest.cpp
+                )
+
+
+# Add google test framework
+ADD_SUBDIRECTORY(lib/gtest-1.7.0 gtest)
+include_directories(gtest STATIC lib/gtest-1.7.0/include )
+
+add_executable(ubcsat src/ubcsat.c ${SOURCE_FILES})
+add_executable(runTests ${TEST_FILES} test/TestRunner.cpp)
+
+target_link_libraries(runTests gtest)

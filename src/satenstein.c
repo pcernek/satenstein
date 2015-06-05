@@ -242,33 +242,36 @@ void EnableDisableTrigger() {
 //Trigger VW2Weight is required only iHeuristic is 8 
 
 
-  if((((iHeuristic == 8)||(iHeuristic ==16))&&((bPromisingList)||(bSingleClause)))||(bPromisingList && iDecStrategy == 4)||(bPerformRandomWalk && iRandomStep ==5)||((iTieBreaking == 4)&&(bPromisingList &&((iDecStrategy ==1)||(iDecStrategy ==4))))){
-    if(bNoise){
-    ActivateTriggers("AutoVW2Weights");
-    DeActivateTriggers("VW2Weights");}
-    else{
-    ActivateTriggers("VW2Weights");
-    DeActivateTriggers("AutoVW2Weights");}
+  if ((((iHeuristic == 8) || (iHeuristic == 16)) && ((bPromisingList) || (bSingleClause))) ||
+      (bPromisingList && iDecStrategy == 4) || (bPerformRandomWalk && iRandomStep == 5) ||
+      ((iTieBreaking == 4) && (bPromisingList && ((iDecStrategy == 1) || (iDecStrategy == 4))))) {
+    if (bNoise) {
+      ActivateTriggers("AutoVW2Weights");
+      DeActivateTriggers("VW2Weights");
+    }
+    else {
+      ActivateTriggers("VW2Weights");
+      DeActivateTriggers("AutoVW2Weights");
+    }
   } else {
     DeActivateTriggers("VW2Weights,AutoVW2Weights");
   }
 
- //VarlastSatisfied is only used if iHeuristic is 17 or 18
- if((iHeuristic == 17)||(iHeuristic == 18))
- {
-   //printf("I am activating");
-   ActivateTriggers("VarLastSatisfied");
- } else {
-   DeActivateTriggers("VarLastSatisfied");
- }
+  //VarlastSatisfied is only used if iHeuristic is 17 or 18
+  if ((iHeuristic == 17) || (iHeuristic == 18)) {
+    //printf("I am activating");
+    ActivateTriggers("VarLastSatisfied");
+  } else {
+    DeActivateTriggers("VarLastSatisfied");
+  }
 
- //Lookahead is never required if promising variant is not used
+  //Lookahead is never required if promising variant is not used
 
- if((iHeuristic > 9)&&((bPromisingList)||(bSingleClause))){
-   ActivateTriggers("LookAhead");
- } else {
-  DeActivateTriggers("LookAhead");
- }
+  if ((iHeuristic > 9) && ((bPromisingList) || (bSingleClause))) {
+    ActivateTriggers("LookAhead");
+  } else {
+    DeActivateTriggers("LookAhead");
+  }
 
 
   //DecPromVar is used if promising list
@@ -1080,53 +1083,51 @@ void PickSatenstein() {
           PickNoveltyPlusFC();
           break;
 
-     case 15:
-             PickNoveltyPlusPromisingFC();
-           break;
-     case 16:
-                  if (RandomProb(iDp)) {
-                   if (iNumFalse) {
-                   iClause = SelectClause();
-                   iClauseLen = aClauseLen[iClause];
+        case 15:
+          PickNoveltyPlusPromisingFC();
+          break;
+        case 16:
+          if (RandomProb(iDp)) {
+            if (iNumFalse) {
+              iClause = SelectClause();
+              iClauseLen = aClauseLen[iClause];
 
-                   pLit = pClauseLits[iClause];
+              pLit = pClauseLits[iClause];
 
-                   iFlipCandidate = GetVarFromLit(*pLit);
+              iFlipCandidate = GetVarFromLit(*pLit);
 
-                   pLit++;
+              pLit++;
 
-                   for (j=1;j<iClauseLen;j++) {
-                    iVar = GetVarFromLit(*pLit);
+              for (j = 1; j < iClauseLen; j++) {
+                iVar = GetVarFromLit(*pLit);
 
-                     if (aVW2Weights[iVar] < aVW2Weights[iFlipCandidate]) {
-                      iFlipCandidate = iVar;
-	   }
+                if (aVW2Weights[iVar] < aVW2Weights[iFlipCandidate]) {
+                  iFlipCandidate = iVar;
+                }
 
-                  pLit++;
-                 }
-                } else {
-                  iFlipCandidate = 0;
-               }
-           } else {
+                pLit++;
+              }
+            } else {
+              iFlipCandidate = 0;
+            }
+          } else {
 
             /* otherwise, use regular novelty */
-            if(!bTabu)
-             PickNovelty();
+            if (!bTabu)
+              PickNovelty();
             else
-             PickNoveltyTabu();
-            }
+              PickNoveltyTabu();
+          }
 
-           break;
-
-     case 17: PickNoveltySattime();
           break;
 
-     case 18: PickNoveltyPlusSattime();
+        case 17:
+          PickNoveltySattime();
           break;
 
-	   }
-   }
- }
+        case 18:
+          PickNoveltyPlusSattime();
+          break;
 
       }
     }
@@ -1284,26 +1285,17 @@ void PickSatenstein() {
             if (!bTabu)
               PickNovelty();
             else
-             PickNoveltyTabu();
-            }
- 
-           break;
- 
-     case 17: PickNoveltySattime();
+              PickNoveltyTabu();
+          }
+
           break;
 
-     case 18: PickNoveltyPlusSattime();
+        case 17:
+          PickNoveltySattime();
           break;
 
-           }
-   }
-   else
-   {
-     
-     if(!bPen){
-     // This part of code is never executed in our implementation for the paper
-     // I will make a cleaner version by removing it. 
-
+        case 18:
+          PickNoveltyPlusSattime();
           break;
 
       }

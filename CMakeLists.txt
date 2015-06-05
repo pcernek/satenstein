@@ -4,6 +4,7 @@ project(SATenstein)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32 -O3 -lm ")
 
 set(SOURCE_FILES
+                    src/adaptg2wsatplus.c
                     src/adaptnovelty.c
                     src/algorithms.c
                     src/derandomized.c

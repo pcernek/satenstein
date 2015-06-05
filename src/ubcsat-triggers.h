@@ -623,12 +623,12 @@ extern BOOL *aIsDecPromVar;
 
 /***** promising variable lists for DCCA ******/
 extern UINT32 *csdVarsList;
-extern BOOL *isCSDvar;
+extern BOOL *CSchanged;
 extern UINT32 *csdVarsListPos;
 extern UINT32 iNumCSDvars;
 
 extern UINT32 *nvdVarsList;
-extern BOOL *isNVDvar;
+extern BOOL *NVchanged;
 extern UINT32 *nvdVarsListPos;
 extern UINT32 iNumNVDvars;
 

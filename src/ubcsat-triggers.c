@@ -247,12 +247,12 @@ BOOL *aIsDecPromVar;
 UINT32 iNumDecPromVars;
 
 UINT32 *csdVarsList;
-BOOL *isCSDvar;
+BOOL *CSchanged;
 UINT32 *csdVarsListPos;
 UINT32 iNumCSDvars;
 
 UINT32 *nvdVarsList;
-BOOL *isNVDvar;
+BOOL *NVchanged;
 UINT32 *nvdVarsListPos;
 UINT32 iNumNVDvars;
 
@@ -4739,7 +4739,7 @@ void FlipTrackChangesFCL() {
   //  under the previous assignment of the variable that we have just flipped
   pClause = pLitClause[litWasTrue];
 
-  // update the clauses containing the literal that was true under the previous assignment
+  // update the state of the clauses for which this flip added a false literal
   for (j = 0; j < aNumLitOcc[litWasTrue]; j++) {
     // since this literal was true, and we just flipped it,
     //  now each clause that contained that literal has one less true literal
@@ -4754,8 +4754,12 @@ void FlipTrackChangesFCL() {
 
       // something added in by SATenstein
       fSumClauseVarFlipCount += fClauseVarFlipCounts[*pClause] + ((FLOAT)1 /(FLOAT) aClauseLen[*pClause]);;
+      // update configuration?
       UpdateChange(iFlipCandidate);
 
+      // since a clause containing this variable just became false, flipping this variable again
+      //  would add a true clause to the formula.
+      //
       aVarScore[iFlipCandidate]--;
 
       pLit = pClauseLits[*pClause];
@@ -4935,15 +4939,14 @@ void CreateDecPromVars() {
 
 void CreateConfCheckingVars() {
   csdVarsList = AllocateRAM((iNumVars+1) * sizeof(UINT32));
-  isCSDvar = AllocateRAM((iNumVars+1) * sizeof(BOOL));
+  CSchanged = AllocateRAM((iNumVars+1) * sizeof(BOOL));
   csdVarsListPos = AllocateRAM((iNumVars+1) * sizeof(UINT32));
 
   nvdVarsList = AllocateRAM((iNumVars+1) * sizeof(UINT32));
-  isNVDvar = AllocateRAM((iNumVars+1) * sizeof(BOOL));
+  NVchanged = AllocateRAM((iNumVars+1) * sizeof(BOOL));
   nvdVarsListPos = AllocateRAM((iNumVars+1) * sizeof(UINT32));
 
   sdVarsList = AllocateRAM((iNumVars+1) * sizeof(UINT32));
-  isSDvar = AllocateRAM((iNumVars+1) * sizeof(BOOL));
   sdVarsListPos = AllocateRAM((iNumVars+1) * sizeof(UINT32));
 }
 
@@ -4975,9 +4978,8 @@ void InitConfCheckingVars() {
   iNumSDvars = 0;
 
   for (j = 1; j <= iNumVars; j++) {
-    isCSDvar[j] = FALSE;
-    isNVDvar[j] = FALSE;
-    isSDvar[j] = FALSE;
+    CSchanged[j] = TRUE;
+    NVchanged[j] = TRUE;
 
   }
 }
@@ -5055,7 +5057,7 @@ void UpdateDecPromVars() {
       break;
 
     case UPDATE_DCCA:
-      // TODO: implement
+      UpdateConfCheckingVars();
       break;
 
     default:
@@ -5065,7 +5067,7 @@ void UpdateDecPromVars() {
 }
 
 void UpdateConfCheckingVars() {
-
+  printf("Updating configuration of variables\n");
 }
 
 void CreateDecPromPenVars() {
@@ -5084,9 +5086,8 @@ void InitDecPromPenVars() {
 
   for (j=1;j<=iNumVars;j++) {
 
-    isCSDvar[j]= FALSE;
-    isNVDvar[j] = FALSE;
-    isSDvar[j] = FALSE;
+    CSchanged[j]= FALSE;
+    NVchanged[j] = FALSE;
 
     if (aVarPenScore[j] < 0) {
       aDecPromVarsListPos[j] = iNumDecPromVars;

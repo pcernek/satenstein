@@ -5,8 +5,7 @@
 #ifndef SATENSTEIN_DCCA_H
 #define SATENSTEIN_DCCA_H
 
-void AddDCCA();
-void PickDCCAStructured();
-void DCCAProm();
+void PickDCCA();
+void UpdateDCCA();
 
 #endif //SATENSTEIN_DCCA_H

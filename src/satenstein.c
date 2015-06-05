@@ -302,7 +302,7 @@ void EnableDisableTrigger() {
   /**
    * Choose a flipping scheme
    */
-  if (((bPerformRandomWalk) && (iRandomStep == 2)) || ((bPromisingList) || ((bSingleClause) && (iHeuristic > 9)))) {
+  if (((bPerformRandomWalk) && (iRandomStep == 2)) || (bPromisingList) || ((bSingleClause) && (iHeuristic > 9))) {
     if (bPen) {
       ActivateTriggers("Flip+TrackChanges+FCLPen");
       DeActivateTriggers("Flip+TrackChanges+FCL");
@@ -955,7 +955,7 @@ void PickSatenstein() {
           break;
 
         case PICK_DCCA:
-          DCCAProm();
+          PickDCCA();
 
       }
     }

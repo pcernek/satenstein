@@ -1058,17 +1058,17 @@ void ReadCNF() {
     if (sLine[0] =='p') {
       if (bWeighted) {
         if (bIsWCNF) {
-          sscanf(sLine,"p wcnf %u %u",&iNumVars,&iNumClauses);
+          sscanf(sLine,"p wcnf %"SCAN32" %"SCAN32"",&iNumVars,&iNumClauses);
         } else {
           ReportPrint(pRepErr,"Warning! reading .cnf file and setting all weights = 1\n");
-          sscanf(sLine,"p cnf %u %u",&iNumVars,&iNumClauses);
+          sscanf(sLine,"p cnf %"SCAN32" %"SCAN32"",&iNumVars,&iNumClauses);
         }
       } else {
         if (bIsWCNF) {
           ReportPrint(pRepErr,"Warning! reading .wcnf file and ignoring all weights\n");
-          sscanf(sLine,"p wcnf %u %u",&iNumVars,&iNumClauses);
+          sscanf(sLine,"p wcnf %"SCAN32" %"SCAN32"",&iNumVars,&iNumClauses);
         } else {
-          sscanf(sLine,"p cnf %u %u",&iNumVars,&iNumClauses);
+          sscanf(sLine,"p cnf %"SCAN32" %"SCAN32"",&iNumVars,&iNumClauses);
         }
       }
     } else {
@@ -1106,7 +1106,7 @@ void ReadCNF() {
 
     if (bWeighted) {
       if (bIsWCNF) {
-        fscanf(filInput,"%f",&fDummy);
+        fscanf(filInput,"%"SCAN64,&fDummy);
         aClauseWeight[j] = (FLOAT) fDummy;
       } else {
         aClauseWeight[j] = 1.0f;
@@ -1114,7 +1114,7 @@ void ReadCNF() {
       fTotalWeight += aClauseWeight[j];
     } else {
       if (bIsWCNF) {
-        fscanf(filInput,"%f",&fDummy);
+        fscanf(filInput,"%"SCAN64,&fDummy);
       }
     }
 
@@ -1122,7 +1122,7 @@ void ReadCNF() {
     aClauseLen[j] = 0;
 
     do {
-      iScanRet = fscanf(filInput,"%d",&l);
+      iScanRet = fscanf(filInput,"%"SCANS32,&l);
 
       while (iScanRet != 1) {
         if (iScanRet==0) {
@@ -1130,14 +1130,14 @@ void ReadCNF() {
 
           if (sLine[0] =='c') {
             ReportPrint1(pRepErr,"Warning: Ingoring comment line mid instance:\n   %s",sLine);
-            iScanRet = fscanf(filInput,"%d",&l);
+            iScanRet = fscanf(filInput,"%"SCANS32,&l);
           } else {
-            ReportPrint1(pRepErr,"Error reading instance at clause [%u]\n",j);
+            ReportPrint1(pRepErr,"Error reading instance at clause [%"P32"]\n",j);
             ReportPrint1(pRepErr,"  at or near: %s\n",sLine);
             AbnormalExit();
           }
         } else {
-          ReportPrint1(pRepErr,"Error reading instance. at clause [%u]\n",j);
+          ReportPrint1(pRepErr,"Error reading instance. at clause [%"P32"]\n",j);
           AbnormalExit();
         }
       }
@@ -1158,7 +1158,7 @@ void ReadCNF() {
         *pNextLit = SetLitFromFile(l);
 
         if (GetVarFromLit(*pNextLit) > iNumVars) {
-          ReportPrint2(pRepErr,"Error: Invalid Literal [%d] in clause [%u]\n",l,j);
+          ReportPrint2(pRepErr,"Error: Invalid Literal [%"P32"] in clause [%"P32"]\n",l,j);
           AbnormalExit();
         }
 
@@ -1173,7 +1173,7 @@ void ReadCNF() {
     }
 
     if (aClauseLen[j] == 0) {
-      ReportPrint1(pRepErr,"Error: Reading .cnf, clause [%u] is empty\n",j);
+      ReportPrint1(pRepErr,"Error: Reading .cnf, clause [%"P32"] is empty\n",j);
       AbnormalExit();
     }
   }

@@ -26,6 +26,7 @@
     This file contains the simple memory managment of ubcsat
 */
 
+#define UBCSAT_MALLOC_ALIGN 16
 
 UINT32 iNumHeap;
 size_t iLastRequestSize;
@@ -45,7 +46,7 @@ void *AllocateRAM( size_t size ) {
   UINT32 iHeapID = 0;
   void *pReturn;
 
-  size = size + (4-(size % 4));
+  size = size + (UBCSAT_MALLOC_ALIGN - (size % UBCSAT_MALLOC_ALIGN));
 
   iLastRequestSize = size;
   
@@ -84,7 +85,7 @@ void *AllocateRAM( size_t size ) {
 }
 
 void AdjustLastRAM( size_t size ) {
-  size = size + (4-(size % 4));
+  size = size + (UBCSAT_MALLOC_ALIGN - (size % UBCSAT_MALLOC_ALIGN));
   aHeap[iLastHeap].iBytesFree += (iLastRequestSize - size);
   aHeap[iLastHeap].pFree -= (iLastRequestSize - size);
 }

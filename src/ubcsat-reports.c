@@ -93,7 +93,7 @@ void ReportPenaltyPrintStep();
 void ReportPenaltyPrintRun();
 BOOL bReportPenaltyReNormBase;
 BOOL bReportPenaltyReNormFraction;
-UINT32 bReportPenaltyEveryLM;
+BOOL bReportPenaltyEveryLM;
 FLOAT *aPenaltyStatsFinal;
 FLOAT *aPenaltyStatsFinalSum;
 FLOAT *aPenaltyStatsFinalSum2;

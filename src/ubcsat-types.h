@@ -22,6 +22,11 @@
 
 /* Column Statistic Fields */
 
+#include <stdint.h>
+#ifndef _WIN32
+#include <stdbool.h>
+#endif
+
 #define STATCODE_all      0xFFFFFFFF
 #define STATCODE_mean     0x00000002
 #define STATCODE_stddev   0x00000004
@@ -48,30 +53,27 @@
 #define STATCODE_SORTMASK 0x001FFF00
 #define STATCODE_CALCMASK 0x0000007E
 
-#define FLOAT double
+typedef double FLOAT;
 #define FLOATMAX (1E+300)
 #define FLOATZERO (0.0f)
 
-#define PROBABILITY unsigned long
+typedef uint32_t UINT32;
+#define UINT32MAX (0xFFFFFFFF)
 
-#ifndef BOOL
-#define BOOL unsigned long
-#endif
+typedef int32_t SINT32;
+#define SINT32MAX 0x7FFFFFFF
+#define SINT32MIN 0x80000000
 
-#ifndef UINT32
-#define UINT32 unsigned long
-#endif
+typedef UINT32 PROBABILITY;
 
-#ifndef SINT32
-#define SINT32 signed long
+typedef unsigned char BOOL;
+
+#ifndef TRUE
+#define TRUE 1
 #endif
 
 #ifndef FALSE
 #define FALSE 0
-#endif
-
-#ifndef TRUE
-#define TRUE 1
 #endif
 
 #ifndef NULL

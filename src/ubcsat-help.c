@@ -39,7 +39,7 @@ BOOL bShowHelpC;
 BOOL bShowHelpS;
 
 void HelpNoAlgorithm();
-void HelpBadReport();
+void HelpBadReport(char *sParm);
 void HelpPrintAlgorithms();
 void HelpPrintParms();
 void HelpShowBasic();

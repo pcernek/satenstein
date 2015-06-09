@@ -151,6 +151,10 @@ void InitSolveMode();
 /***** Trigger UpdatePercents *****/
 void UpdatePercents();
 
+/***** Trigger UpdateColSolutionFound *****/
+void UpdateColSolutionFound();
+UINT32 iColSolutionFound;
+
 /***** Trigger MobilityColumn *****/
 void InitMobilityColumnN();
 void InitMobilityColumnX();
@@ -257,6 +261,7 @@ void AddReportTriggers() {
   CreateTrigger("ColumnInit",PreRun,ColumnInit,"","");
   CreateTrigger("SolveMode",PreStart,InitSolveMode,"ReportModelPrint","");
   CreateTrigger("UpdatePercents",FinalCalculations,UpdatePercents,"SortByStepPerformance","");
+  CreateTrigger("UpdateColSolutionFound",RunCalculations,UpdateColSolutionFound,"","");
 
   CreateTrigger("InitMobilityColumnN",PostParameters,InitMobilityColumnN,"","");
   CreateTrigger("InitMobilityColumnX",PostParameters,InitMobilityColumnX,"","");
@@ -2003,6 +2008,17 @@ void UpdatePercents() {
 
 }
 
+
+/***** Trigger UpdateColSolutionFound *****/
+
+void UpdateColSolutionFound() {
+
+  if (bSolutionFound) {
+    iColSolutionFound = 1;
+  } else {
+    iColSolutionFound = 0;
+  }
+}
 
 
 /***** Trigger UpdateTimes *****/

@@ -20,7 +20,6 @@
 
 */
 
-/* Column Statistic Fields */
 
 #include <stdint.h>
 #ifndef _WIN32
@@ -49,7 +48,7 @@
 #define STATCODE_qr9010   0x00080000
 #define STATCODE_qr9505   0x00100000
 
-#define STATCODE_RAMMASK  0x001FFF00
+#define STATCODE_RAMMASK      0x3FFFFF00
 #define STATCODE_SORTMASK 0x001FFF00
 #define STATCODE_CALCMASK 0x0000007E
 
@@ -76,9 +75,14 @@ typedef unsigned char BOOL;
 #define FALSE 0
 #endif
 
+#ifndef BYTE
+#define BYTE uint8_t
+#endif
+
 #ifndef NULL
 #define NULL 0
 #endif
+
 
 enum EVENTPOINT
 {
@@ -291,10 +295,6 @@ typedef struct typeREPORTSTAT {
 
 } REPORTSTAT;
 
-#ifndef BYTE
-#define BYTE unsigned char
-#endif
-
 typedef BYTE* VARSTATE;
 
 typedef struct typeVARSTATELIST {
@@ -313,4 +313,3 @@ typedef struct typeDYNAMICPARM {
   FLOAT fFactor;
 
 } DYNAMICPARM;
-

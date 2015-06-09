@@ -30,8 +30,6 @@
 #define MERSENNE
 
 #ifdef MERSENNE
-  extern unsigned long genrand_int32();
-  extern void init_genrand(unsigned long s);
 
   FXNRAND32 fxnRandUInt32 = genrand_int32;
   #define fxnRandSeed(A) init_genrand(A)

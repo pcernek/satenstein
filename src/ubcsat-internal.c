@@ -611,6 +611,13 @@ void AddReportParmUInt(REPORT *pRep, const char *sParmName, UINT32 *pParmValUInt
   AddReportParmCommon(pRep, sParmName);
 }
 
+void AddReportParmBool(REPORT *pRep, const char *sParmName, BOOL *pParmValBool, BOOL bDefault) {
+  pRep->aParmTypes[pRep->iNumParms] = PTypeBool;
+  pRep->aParameters[pRep->iNumParms] = (void *) pParmValBool;
+  *pParmValBool = bDefault;
+  AddReportParmCommon(pRep,sParmName);
+}
+
 void AddRTDColumnID(UINT32 j, const char *sItem) {
 
   aRTDColumns[iNumRTDColumns++] = j;

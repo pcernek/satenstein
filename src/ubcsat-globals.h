@@ -20,6 +20,11 @@
 
 */
 
+#ifdef __cplusplus
+namespace ubcsat {
+#endif
+
+
 /***** UBCSAT GLOBAL VARIABLES *****/
 /*
     sAlgName              name of current algorithm
@@ -248,6 +253,7 @@ REPORT *CreateReport(const char *sID,
 void AddReportParmUInt(REPORT *pRep, const char *sParmName, UINT32 *pParmValUInt, UINT32 iDefault);
 void AddReportParmFloat(REPORT *pRep, const char *sParmName, FLOAT *pParmValFloat, FLOAT fDefault);
 void AddReportParmString(REPORT *pRep, const char *sParmName, const char *pDefault);
+void AddReportParmBool(REPORT *pRep, const char *sParmName, BOOL *pParmValBool, BOOL bDefault);
 
 /*
     AddColumn????()       add a column of data for output & rtd reports

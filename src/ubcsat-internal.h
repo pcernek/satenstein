@@ -102,6 +102,7 @@ extern BOOL bReportMobilityNormalized;
 extern UINT32 iRunProceduresLoop;
 extern UINT32 iRunProceduresLoop2;
 extern BOOL bSortedByStepsValid;
+extern UINT32 iColSolutionFound;
 
 extern BOOL bMobilityColNActive;
 extern BOOL bMobilityColXActive;
@@ -134,7 +135,7 @@ void CalculateStats(FLOAT *fMean, FLOAT *fStddev, FLOAT *fCV, FLOAT fSum, FLOAT 
 FLOAT CorrelationCoeff(FLOAT fSumA, FLOAT fSumA2,FLOAT fSumB, FLOAT fSumB2, FLOAT fSumAB, UINT32 iCount);
 void CheckPrintHelp();
 UINT32 FindItem(ITEMLIST *pList,char *sID);
-void HelpBadParm();
+void HelpBadParm(char *sParm);
 void ParseAllParameters(int argc, char *argv[]);
 void PrintAlgParmSettings(REPORT *pRep, ALGPARMLIST *pParmList);
 void PrintFullStat(REPORTSTAT *pStat, const char *sStatID, char *sPrintID, FLOAT fValue);

@@ -56,7 +56,7 @@ void AddReports() {
 
   pRepOut = CreateReport("out", "Standard Output with Columns","Prints an array of data, with each row representing an independent run~you can customize the report to include a variety of columns","stdout","ReportOut");
   AddReportParmString(pRepOut,"Columns to Display (ubcsat -hc for info)","default");
-  AddReportParmUInt(pRepOut,"Delay: Set to 1 to print after all runs are complete",&bReportOutputSuppress,0);
+  AddReportParmBool(pRepOut,"Delay: Set to 1 to print after all runs are complete",&bReportOutputSuppress,0);
   pRepOut->bActive = TRUE;
 
   pRepStats = CreateReport("stats","Statistics Report","Shows summary statistics from all runs~you can customize the report to include a variety of statistics","stdout","ReportStats");
@@ -71,7 +71,7 @@ void AddReports() {
   pRepCNFStats = CreateReport("cnfstats","Instance Statistics","Provides additional information about the properties of the instance","stdout","ReportCNFStatsPrint");
   
   pRepState = CreateReport("state","State Information Trace","Provides detailed state information for each search step, including:~the solution quality, the variable flipped, and the state of all variables","stdout","ReportStatePrint");
-  AddReportParmUInt(pRepState,"Only print when in local minima",&bReportStateLMOnly,0);
+  AddReportParmBool(pRepState,"Only print when in local minima",&bReportStateLMOnly,0);
   AddReportParmFloat(pRepState,"Only print at a specific Solution Quality (all if -1)",&fReportStateQuality,-1.0f);
 
   pRepSolution = CreateReport("solution","Solutions","Prints solutions for every successful run in the format:~1001001101...~where variable 1 is true, 2 is false, 3 is false, etc...","stdout","ReportSolutionPrint");
@@ -81,12 +81,12 @@ void AddReports() {
   pRepBestSol = CreateReport("bestsol","Best Candidate Solutions","Similar to (-r solution), but includes variable assignments for the~best solution quality encountered when no solution is found","stdout","ReportBestSolPrint");
 
   pRepBestStep = CreateReport("beststep","Steps of Each New Best Solution Quality","Print step information for each new best solution encountered","stdout","ReportBestStepPrint");
-  AddReportParmUInt(pRepBestStep,"Include the variable assignment for each new best",&bReportBestStepVars,0);
+  AddReportParmBool(pRepBestStep,"Include the variable assignment for each new best",&bReportBestStepVars,0);
 
   pRepTrajBestLM = CreateReport("tbestlm","Trajectory Best Local Minima","Very similar to (-r beststep), except it ignores best solutions that~are improved upon in the next step","stdout","ReportTrajBestLM");
   
   pRepOptClauses = CreateReport("unsatclauses","Unsatisfied Clauses","Print unsatisfied clauses when the run is complete~mostly useful when -target > 0 -- the format is:~1101111...~where clause 3 was unsatisfied when the run terminated","stdout","ReportUnsatClausesPrint");
-  AddReportParmUInt(pRepOptClauses,"Only Include runs where -target solution was reached",&bReportOptClausesSol,0);
+  AddReportParmBool(pRepOptClauses,"Only Include runs where -target solution was reached",&bReportOptClausesSol,0);
 
   pRepFlipCounts = CreateReport("flipcount","Variable Flip Count","Prints the number of times each variable was flipped~restarts are counted in the first column (nullflips)","stdout","ReportFlipCountsPrint");
 
@@ -100,31 +100,31 @@ void AddReports() {
   AddReportParmUInt(pRepSQGrid,"# of key step points per decade",&iLogDistStepsPerDecade,10);
 
   pRepPenalty = CreateReport("penalty","Clause Penalties","Prints the Clause penalties (weights) from DLS algorithms (i.e.: SAPS,PAWS)~Note: the renormalize to total overrides renormalize to base","stdout","ReportPenaltyPrint");
-  AddReportParmUInt(pRepPenalty,"Re-normalise to base so an untouched clause is equal to 1",&bReportPenaltyReNormBase,1);
-  AddReportParmUInt(pRepPenalty,"Re-normalise to total so sum of all penalties equals 1",&bReportPenaltyReNormFraction,0);
-  AddReportParmUInt(pRepPenalty,"Print penalties every local min (0=end of run only)",&bReportPenaltyEveryLM,0);
+  AddReportParmBool(pRepPenalty,"Re-normalise to base so an untouched clause is equal to 1",&bReportPenaltyReNormBase,1);
+  AddReportParmBool(pRepPenalty,"Re-normalise to total so sum of all penalties equals 1",&bReportPenaltyReNormFraction,0);
+  AddReportParmBool(pRepPenalty,"Print penalties every local min (0=end of run only)",&bReportPenaltyEveryLM,0);
 
   pRepPenMean = CreateReport("penmean","Clause Penalties (Mean)","Mean of clause penalties throughout the run","stdout","ReportPenMeanPrint");
-  AddReportParmUInt(pRepPenMean,"Re-normalise to base so an untouched clause is equal to 1",&bReportPenaltyReNormBase,1);
-  AddReportParmUInt(pRepPenMean,"Re-normalise to total so sum of all penalties equals 1",&bReportPenaltyReNormFraction,0);
+  AddReportParmBool(pRepPenMean,"Re-normalise to base so an untouched clause is equal to 1",&bReportPenaltyReNormBase,1);
+  AddReportParmBool(pRepPenMean,"Re-normalise to total so sum of all penalties equals 1",&bReportPenaltyReNormFraction,0);
   pRepPenStddev = CreateReport("penstddev","Clause Penalties (Stddev)","StdDev of clause penalties throughout the run","stdout","ReportPenStddevPrint");
-  AddReportParmUInt(pRepPenStddev,"Re-normalise to base so an untouched clause is equal to 1",&bReportPenaltyReNormBase,1);
-  AddReportParmUInt(pRepPenStddev,"Re-normalise to total so sum of all penalties equals 1",&bReportPenaltyReNormFraction,0);
+  AddReportParmBool(pRepPenStddev,"Re-normalise to base so an untouched clause is equal to 1",&bReportPenaltyReNormBase,1);
+  AddReportParmBool(pRepPenStddev,"Re-normalise to total so sum of all penalties equals 1",&bReportPenaltyReNormFraction,0);
   pRepPenCV = CreateReport("pencv","Clause Penalties (CV)","CV of clause penalties throughout the run","stdout","ReportPenCVPrint");
-  AddReportParmUInt(pRepPenCV,"Re-normalise to base so an untouched clause is equal to 1",&bReportPenaltyReNormBase,1);
-  AddReportParmUInt(pRepPenCV,"Re-normalise to total so sum of all penalties equals 1",&bReportPenaltyReNormFraction,0);
+  AddReportParmBool(pRepPenCV,"Re-normalise to base so an untouched clause is equal to 1",&bReportPenaltyReNormBase,1);
+  AddReportParmBool(pRepPenCV,"Re-normalise to total so sum of all penalties equals 1",&bReportPenaltyReNormFraction,0);
 
   pRepMobility = CreateReport("mobility","Mobility Report","Mean Hamming distances for windows of sizes 1..length~Parameter 2 will normalize output so 1 is maximum value","stdout","ReportMobilityPrint");
   AddReportParmUInt(pRepMobility,"Largest mobility window length to display [default = n]",&iReportMobilityDisplay,0);
-  AddReportParmUInt(pRepMobility,"Normalize Mobility values: Mobility/min(n,windowsize)",&bReportMobilityNormalized,0);
+  AddReportParmBool(pRepMobility,"Normalize Mobility values: Mobility/min(n,windowsize)",&bReportMobilityNormalized,0);
 
   pRepMobFixed = CreateReport("mobfixed","Mobility For a Fixed Window Size","Provides step-by-step Mobility data for a fixed window size~1st parameter sets the size of the window,~2nd parameter includes or ignores(default) the first 1..size steps~both parameters affect column results (mobx, mobxcv, etc.)~to set parameters without running report, use~-r mobfixed null INT BOOL","stdout","ReportMobFixedPrint");
   AddReportParmUInt(pRepMobFixed,"Mobility window size [default = n]",&iMobFixedWindow,0);
-  AddReportParmUInt(pRepMobFixed,"Include first (1..windowsize) steps",&bMobilityFixedIncludeStart,0);
+  AddReportParmBool(pRepMobFixed,"Include first (1..windowsize) steps",&bMobilityFixedIncludeStart,0);
 
   pRepMobFixedFreq = CreateReport("mobfixedfreq","Mobility Fixed Window Histogram","Mobility frequency counts for a fixed window size~must use the same parameter settings as (-r mobfixed)","stdout","ReportMobFixedFreqPrint");
   AddReportParmUInt(pRepMobFixedFreq,"Mobility window size [default = n]",&iMobFixedWindow,0);
-  AddReportParmUInt(pRepMobFixedFreq,"Include first (1..windowsize) steps ",&bMobilityFixedIncludeStart,0);
+  AddReportParmBool(pRepMobFixedFreq,"Include first (1..windowsize) steps ",&bMobilityFixedIncludeStart,0);
 
   pRepAutoCorr = CreateReport("autocorr","Autocorrelation Report","Autocorrelation Length (ACL) and autocorrelation values for lengths 1..max~if the ACL is greater than max, it returns an ACL value of max~parameters affect column (acl) results~to set parameters without running report, use~-r autocorr null INT FL","stdout","ReportAutoCorrPrint");
   AddReportParmUInt(pRepAutoCorr,"Maximum window length [default = n]",&iAutoCorrMaxLen,0);
@@ -143,7 +143,7 @@ void AddReports() {
     "     ",
     "  Run",
     "  No.",
-    "%5u",
+    "%5"P32,
     &iRun,"",ColTypeFinal);
 
 
@@ -151,8 +151,8 @@ void AddReports() {
     "F",
     "N",
     "D",
-    "%1u"
-    ,&bSolutionFound,"",ColTypeFinal);
+    "%1"P32,
+    &iColSolutionFound,"UpdateColSolutionFound",ColTypeFinal);
 
 
   AddColumnUInt("steps","Total Number of Search Steps",
@@ -179,7 +179,7 @@ void AddReports() {
     " Best",
     "Sol'n",
     "Found",
-    "%5u",
+    "%5"P32,
     &iNumFalse,"",ColTypeMin);
 
   AddStatCol("best","BestSolution","mean",FALSE);
@@ -198,7 +198,7 @@ void AddReports() {
     "Worst",
     "Sol'n",
     "Found",
-    "%5u",
+    "%5"P32,
     &iNumFalse,"",ColTypeMax);
 
   AddStatCol("worst","WorstSolution","mean",FALSE);
@@ -217,7 +217,7 @@ void AddReports() {
     " Last",
     "Sol'n",
     "Found",
-    "%5u",
+    "%5"P32,
     &iNumFalse,"",ColTypeFinal);
 
   AddStatCol("last","LastSolution","mean",FALSE);
@@ -236,7 +236,7 @@ void AddReports() {
     "Start",
     "Sol'n",
     "Found",
-    "%5u",
+    "%5"P32,
     &iStartNumFalse,"StartFalse",ColTypeFinal);
 
   AddStatCol("start","StartSolution","mean",FALSE);
@@ -296,7 +296,7 @@ void AddReports() {
     "False",
     "@ 1st",
     "L.Min",
-    "%5u",
+    "%5"P32,
     &iFirstLM,"FirstLM",ColTypeFinal);
 
   AddStatCol("firstlm","FirstLocalMin","mean",FALSE);
@@ -445,7 +445,7 @@ void AddReports() {
     "          ",
     "  Starting",
     "      Seed",
-    "%10u",
+    "%10"P32,
     &iStartSeed,"StartSeed",ColTypeFinal);
 
   
@@ -472,7 +472,7 @@ void AddReports() {
     "  Number",
     "      of",
     "Restarts",
-    "%8u",
+    "%8"P32,
     &iNumRestarts,"NumRestarts",ColTypeFinal);
 
   AddStatCol("restarts","NumRestarts","mean",FALSE);
@@ -501,7 +501,7 @@ void AddReports() {
     " Mean #",
     "of Flip",
     " Candid",
-    "%7.2f",
+    "%7.4f",
     &iNumCandidates,"",ColTypeMean);
 
   AddStatCol("candidates","FlipCandidatesMean","mean",FALSE);
@@ -559,7 +559,7 @@ void AddReports() {
     "Auto",
     "Corr",
     "Len.",
-    "%4u",
+    "%4"P32,
     &iAutoCorrLen,"AutoCorr",ColTypeFinal);
 
   AddStatCol("acl","ACL","mean",FALSE);

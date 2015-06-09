@@ -414,6 +414,17 @@ void HelpPrintReport(REPORT *pRep) {
         case PTypeString:
           ReportPrint1(pRepHelp," [%s] \n",(char *)pRep->aParameters[k]);          
           break;
+        case PTypeBool:
+          ReportPrint1(pRepHelp," [%u] \n",(unsigned int) *(BOOL *)pRep->aParameters[k]);
+          break;
+        case PTypeReport:
+        case PTypeProbability:
+        case PTypeSInt:
+          ReportPrint(pRepErr,"Unexpected Error: bad report parameter\n");
+          AbnormalExit();
+          exit(1);
+        default:
+          break;
         }
       }
     }
@@ -495,18 +506,18 @@ void HelpPrintParameter(ALGPARM *pCurParm, BOOL bAlgOffset) {
       sprintf(sHelpString,"%d",pCurParm->defDefault.iSInt);
       break;
     case PTypeProbability:
-      sprintf(sHelpString,"%3.2f",ProbToFloat(pCurParm->defDefault.iProb));
+      sprintf(sHelpString,"%.4g",ProbToFloat(pCurParm->defDefault.iProb));
       break;
     case PTypeString:
-      sprintf(sHelpString,"");
       break;
     case PTypeFloat:
-      sprintf(sHelpString,"%g",pCurParm->defDefault.fFloat);
+      sprintf(sHelpString,"%.6g",pCurParm->defDefault.fFloat);
       break;
     case PTypeReport:
-      sprintf(sHelpString,"");
       break;
-  }  
+    default:
+      break;
+  }
 
   if (bAlgOffset) {
     if (pCurParm->eType == PTypeBool) {

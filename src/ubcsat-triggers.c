@@ -1031,6 +1031,7 @@ void ReadCNF() {
   float fDummy;
   SINT32 l;
   SINT32 iScanRet;
+  long unsigned int w;
   
 
   LITTYPE *pData;
@@ -1106,15 +1107,21 @@ void ReadCNF() {
 
     if (bWeighted) {
       if (bIsWCNF) {
-        fscanf(filInput,"%"SCAN64,&fDummy);
-        aClauseWeight[j] = (FLOAT) fDummy;
+        iScanRet = fscanf(filInput,"%"SCAN64,&w);
+        if (iScanRet != 1) {
+          ReportHdrPrefix(pRepErr);
+          ReportHdrPrint1(pRepErr,"Error reading clause weight at clause [%"P32"]\n",j);
+          ReportHdrPrint1(pRepErr,"  at or near: %s\n",sLine);
+          aClauseWeight[j] = 1;
+        }
+        aClauseWeight[j] = w;
       } else {
-        aClauseWeight[j] = 1.0f;
+        aClauseWeight[j] = 1;
       }
       fTotalWeight += aClauseWeight[j];
     } else {
       if (bIsWCNF) {
-        fscanf(filInput,"%"SCAN64,&fDummy);
+        fscanf(filInput,"%"SCAN64,&w);
       }
     }
 

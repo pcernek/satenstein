@@ -1710,6 +1710,12 @@ void AllocateColumnRAM() {
           pCol->pfColumnData = AllocateRAM(iNumRuns * sizeof(FLOAT));
           memset(pCol->pfColumnData,0,(iNumRuns)*sizeof(FLOAT));
           break;
+        case DTypeString:
+          ReportPrint(pRepErr,"Unexpected Error: String Column Data\n");
+          AbnormalExit();
+          exit(1);
+        default:
+          break;
       }
     }
   }
@@ -1774,6 +1780,12 @@ void ColumnRunCalculation() {
           case DTypeFloat:
             pCol->fCurRowValue = *pCol->pfCurValue;
             break;
+          case DTypeString:
+            ReportPrint(pRepErr,"Unexpected Error: String Column Data\n");
+            AbnormalExit();
+            exit(1);
+          default:
+            break;
           }
           break;
         case ColTypeMin:
@@ -1789,6 +1801,12 @@ void ColumnRunCalculation() {
           case DTypeFloat:
             pCol->fCurRowValue = pCol->fMinMaxVal;
             break;
+          case DTypeString:
+            ReportPrint(pRepErr,"Unexpected Error: String Column Data\n");
+            AbnormalExit();
+            exit(1);
+          default:
+            break;
           }
           break;
         case ColTypeFinalDivStep:
@@ -1803,6 +1821,12 @@ void ColumnRunCalculation() {
             break;
           case DTypeFloat:
             pCol->fCurRowValue = *pCol->pfCurValue;
+            break;
+          case DTypeString:
+            ReportPrint(pRepErr,"Unexpected Error: String Column Data\n");
+            AbnormalExit();
+            exit(1);
+          default:
             break;
           }
           pCol->fCurRowValue *= fStepMul;
@@ -1826,6 +1850,9 @@ void ColumnRunCalculation() {
               pCol->fCurRowValue = fCV;
             }
           }
+          break;
+
+        default:
           break;
       }
       if (pCol->bAllocateColumnRAM) {
@@ -1877,6 +1904,12 @@ void ColumnStepCalculation() {
         case DTypeFloat:
           pCol->fRowSum2 += ((*pCol->pfCurValue) * (*pCol->pfCurValue));
           break;
+        case DTypeString:
+          ReportPrint(pRepErr,"Unexpected Error: String Column Data\n");
+          AbnormalExit();
+          exit(1);
+        default:
+          break;
         }
       case ColTypeMean:
         switch(pCol->eSourceDataType)
@@ -1889,6 +1922,12 @@ void ColumnStepCalculation() {
           break;
         case DTypeFloat:
           pCol->fRowSum += *pCol->pfCurValue;
+          break;
+        case DTypeString:
+          ReportPrint(pRepErr,"Unexpected Error: String Column Data\n");
+          AbnormalExit();
+          exit(1);
+        default:
           break;
         }
         break;
@@ -1905,6 +1944,12 @@ void ColumnStepCalculation() {
           case DTypeFloat:
             if (*pCol->pfCurValue < pCol->fMinMaxVal) pCol->fMinMaxVal = *pCol->pfCurValue;
             break;
+          case DTypeString:
+            ReportPrint(pRepErr,"Unexpected Error: String Column Data\n");
+            AbnormalExit();
+            exit(1);
+          default:
+            break;
         }
         break;
 
@@ -1920,7 +1965,19 @@ void ColumnStepCalculation() {
           case DTypeFloat:
             if (*pCol->pfCurValue > pCol->fMinMaxVal) pCol->fMinMaxVal = *pCol->pfCurValue;
             break;
+          case DTypeString:
+            ReportPrint(pRepErr,"Unexpected Error: String Column Data\n");
+            AbnormalExit();
+            exit(1);
+          default:
+            break;
         }
+        break;
+
+      case ColTypeFinal:
+      case ColTypeFinalDivStep:
+      case ColTypeFinalDivStep100:
+      default:
         break;
     }
   }
@@ -1954,24 +2011,26 @@ void StringAlgParms() {
   
   pNext = sStringAlgParms;
   pNext += sprintf(pNext,"-alg %s",pActiveAlgorithm->sName);
-  if (*(pActiveAlgorithm->sVariant))
+  if (*(pActiveAlgorithm->sVariant)) {
     pNext += sprintf(pNext," -v %s",pActiveAlgorithm->sVariant);
-  if (pActiveAlgorithm->bWeighted)
+  }
+  if (pActiveAlgorithm->bWeighted) {
     pNext += sprintf(pNext," -w");
-  
+  }
+
   for (j=0;j<pActiveAlgorithm->parmList.iNumParms;j++) {
     pCurParm = &pActiveAlgorithm->parmList.aParms[j];
     pNext += sprintf(pNext," %s ",pCurParm->sSwitch);
     switch(pCurParm->eType)
     {
       case PTypeUInt:
-        pNext += sprintf(pNext,"%u ", *(UINT32 *)pCurParm->pParmValue);
+        pNext += sprintf(pNext,"%"P32" ", *(UINT32 *)pCurParm->pParmValue);
         break;
       case PTypeSInt:
-        pNext += sprintf(pNext,"%d ", *(int *)pCurParm->pParmValue);
+        pNext += sprintf(pNext,"%"PS32" ", *(SINT32 *)pCurParm->pParmValue);
         break;
       case PTypeProbability:
-        pNext += sprintf(pNext,"%f ", ProbToFloat(*(PROBABILITY *)pCurParm->pParmValue));
+        pNext += sprintf(pNext,"%.4g ", ProbToFloat(*(PROBABILITY *)pCurParm->pParmValue));
         break;
       case PTypeString:
         if (**(char **)pCurParm->pParmValue ==0) {
@@ -1981,14 +2040,16 @@ void StringAlgParms() {
         }
         break;
       case PTypeFloat:
-        pNext += sprintf(pNext,"%f ", *(FLOAT *)pCurParm->pParmValue);
+        pNext += sprintf(pNext,"%.6g ", *(FLOAT *)pCurParm->pParmValue);
         break;
       case PTypeBool:
-        pNext += sprintf(pNext,"%u ", *(UINT32 *)pCurParm->pParmValue);
+        pNext += sprintf(pNext,"%u", (unsigned int) *(BOOL *)pCurParm->pParmValue);
         break;
       case PTypeReport:
         break;
-    }  
+      default:
+        break;
+    }
   }
 
 

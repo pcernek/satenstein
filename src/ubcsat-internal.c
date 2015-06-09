@@ -186,6 +186,8 @@ void ActivateColumnID(UINT32 iColID, const char *sItem) {
       case ColTypeFinalDivStep100:
         ActivateTriggers("ColumnRunCalculation");
         break;
+      default:
+        break;
     }
   }
 }
@@ -307,6 +309,14 @@ void ActivateDynamicParms() {
         if (*fTarget == FLOATZERO) {
           *fTarget = (*(pCurParm->pBase) * pCurParm->fFactor);
         }
+        break;
+
+      case DTypeString:
+        ReportPrint(pRepErr,"Unexpected Error: String Dynamic Parameter\n");
+        AbnormalExit();
+        exit(1);
+
+      default:
         break;
     }
   }

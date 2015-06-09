@@ -211,7 +211,7 @@ void AddParmBool(ALGPARMLIST *pParmList,
                   const char *sName, 
                   const char *sDescription,
                   const char *sTriggers,
-                  UINT32 *pBool,
+                  BOOL *pBool,
                   BOOL bDefBool);
 
 void AddParmFloat(ALGPARMLIST *pParmList, 

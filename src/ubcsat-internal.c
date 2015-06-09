@@ -268,7 +268,7 @@ void ActivateTriggerID(UINT32 iFxnID, const char *sItem) {
     aActiveProcedures[eEventPoint][aNumActiveProcedures[eEventPoint]] = pTrigger->pProcedure;
     aNumActiveProcedures[eEventPoint]++;
     if (aNumActiveProcedures[eEventPoint] == MAXFXNLIST) {
-      ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXFXNLIST [%u]\n", MAXFXNLIST);
+      ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXFXNLIST [%d]\n", MAXFXNLIST);
       AbnormalExit();
     }
   }
@@ -335,7 +335,7 @@ void AddDynamicParm(void *pTarget, enum CDATATYPE eDataType, UINT32 *pBase, FLOA
   iNumDynamicParms++;
 
   if (iNumDynamicParms == MAXDYNAMICPARMS) {
-    ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXDYNAMICPARMS [%u] \n", MAXDYNAMICPARMS);
+    ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXDYNAMICPARMS [%d] \n", MAXDYNAMICPARMS);
     AbnormalExit();
   }
 }
@@ -441,7 +441,7 @@ void AddContainerItem(ITEMLIST *pList, const char *sID, const char *sList) {
   SetString(&pList->aItems[pList->iNumItems].sContainerList, sList);
   pList->iNumItems++;
   if (pList->iNumItems == MAXITEMLIST) {
-    ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXITEMLIST [%u] \n", MAXITEMLIST);
+    ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXITEMLIST [%d] \n", MAXITEMLIST);
     AbnormalExit();
   }
 }
@@ -451,7 +451,7 @@ void AddItem(ITEMLIST *pList, const char *sID) {
   pList->aItems[pList->iNumItems].bContainer = FALSE;
   pList->iNumItems++;
   if (pList->iNumItems == MAXITEMLIST) {
-    ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXITEMLIST [%u] \n", MAXITEMLIST);
+    ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXITEMLIST [%d] \n", MAXITEMLIST);
     AbnormalExit();
   }
 }
@@ -501,7 +501,7 @@ ALGPARM *AddParmCommon(ALGPARMLIST *pParmList,
   ALGPARM *p;
 
   if (pParmList->iNumParms >= MAXALGPARMS) {
-    ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXALGPARMS [%u]\n", MAXALGPARMS);
+    ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXALGPARMS [%d]\n", MAXALGPARMS);
     AbnormalExit();
   }
 
@@ -586,7 +586,7 @@ void AddReportParmCommon(REPORT *pRep, const char *sParmName) {
   SetString(&pRep->aParmName[pRep->iNumParms], sParmName);
   pRep->iNumParms++;
   if (pRep->iNumParms == MAXREPORTPARMS) {
-    ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXREPORTPARMS [%u]\n", MAXREPORTPARMS);
+    ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXREPORTPARMS [%d]\n", MAXREPORTPARMS);
     AbnormalExit();
   }
 }
@@ -785,7 +785,7 @@ void CheckParamterFile(int iCommandLineCount, char **aCommandLineArgs) {
   if (iNumParmFiles == 0) {
     iNumTotalParms = iCommandLineCount - 1;
     if (iNumTotalParms >= MAXTOTALPARMS) {
-      ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXTOTALPARMS [%u]\n", MAXTOTALPARMS);
+      ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXTOTALPARMS [%d]\n", MAXTOTALPARMS);
       AbnormalExit();
     }
     aTotalParms = &aCommandLineArgs[1];
@@ -803,7 +803,7 @@ void CheckParamterFile(int iCommandLineCount, char **aCommandLineArgs) {
         while (!feof(filParm)) {
           if (fgets(sParmLine, MAXPARMLINELEN, filParm)) {
             if (strlen(sParmLine) == MAXPARMLINELEN - 1) {
-              ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXPARMLINELEN [%u]\n", MAXPARMLINELEN);
+              ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXPARMLINELEN [%d]\n", MAXPARMLINELEN);
               AbnormalExit();
             }
             if ((*sParmLine) && (*sParmLine != '#')) {
@@ -816,7 +816,7 @@ void CheckParamterFile(int iCommandLineCount, char **aCommandLineArgs) {
                   *pPos++ = 0;
                   SetString(&aTotalParms[iNumTotalParms++], pStart);
                   if (iNumTotalParms == MAXTOTALPARMS) {
-                    ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXTOTALPARMS [%u]\n", MAXTOTALPARMS);
+                    ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXTOTALPARMS [%d]\n", MAXTOTALPARMS);
                     AbnormalExit();
                   }
                   pStart = pPos;
@@ -832,7 +832,7 @@ void CheckParamterFile(int iCommandLineCount, char **aCommandLineArgs) {
               if (strlen(pStart)) {
                 SetString(&aTotalParms[iNumTotalParms++], pStart);
                 if (iNumTotalParms == MAXTOTALPARMS) {
-                  ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXTOTALPARMS [%u]\n", MAXTOTALPARMS);
+                  ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXTOTALPARMS [%d]\n", MAXTOTALPARMS);
                   AbnormalExit();
                 }
               }
@@ -848,7 +848,7 @@ void CheckParamterFile(int iCommandLineCount, char **aCommandLineArgs) {
     for (j = 1; j < (iCommandLineCount); j++) {
       SetString(&aTotalParms[iNumTotalParms++], aCommandLineArgs[j]);;
       if (iNumTotalParms == MAXTOTALPARMS) {
-        ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXTOTALPARMS [%u]\n", MAXTOTALPARMS);
+        ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXTOTALPARMS [%d]\n", MAXTOTALPARMS);
         AbnormalExit();
       }
     }
@@ -916,7 +916,7 @@ ALGORITHM *CreateAlgorithm(const char *sName, const char *sVariant, BOOL bWeight
   iNumAlg++;
 
   if (iNumAlg == MAXNUMALG) {
-    ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXNUMALG [%u]\n", MAXNUMALG);
+    ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXNUMALG [%d]\n", MAXNUMALG);
     AbnormalExit();
   }
 
@@ -935,7 +935,7 @@ REPORT *CreateReport(const char *sID, const char *sDescription, const char *sVer
   pRep = &aReports[iNumReports++];
 
   if (iNumReports == MAXREPORTS) {
-    ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXREPORTS [%u] \n", MAXREPORTS);
+    ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXREPORTS [%d] \n", MAXREPORTS);
     AbnormalExit();
   }
 
@@ -1224,7 +1224,7 @@ void ParseItemList(ITEMLIST *pList, char *sItems, CALLBACKPTR ItemFunction) {
   pPos = strchr(sItems, ',');
   if (pPos) {
     if (strlen(sItems) > MAXITEMLISTSTRINGLENGTH - 1) {
-      ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXITEMLISTSTRINGLENGTH [%u] \n",
+      ReportPrint1(pRepErr, "Unexpected Error: increase constant MAXITEMLISTSTRINGLENGTH [%d] \n",
                    MAXITEMLISTSTRINGLENGTH);
       AbnormalExit();
     }
@@ -1291,8 +1291,8 @@ void ParseParameters(ALGPARMLIST *pParmList) {
               AddDynamicParm(pParm->pParmValue, DTypeUInt, &iNumVars, fTemp);
               *((UINT32 *) pParm->pParmValue) = 0;
             } else {
-              if (sscanf(aTotalParms[iCurParm], "%u", pParm->pParmValue) == 0) {
-                HelpBadParm(aTotalParms[iCurParm - 1]);
+              if (sscanf(aTotalParms[iCurParm],"%"SCAN32,(UINT32 *) pParm->pParmValue)==0) {
+                HelpBadParm(aTotalParms[iCurParm-1]);
               }
             }
           }
@@ -1313,7 +1313,7 @@ void ParseParameters(ALGPARMLIST *pParmList) {
             AddDynamicParm(pParm->pParmValue, DTypeSInt, &iNumVars, fTemp);
             *((SINT32 *) pParm->pParmValue) = 0;
           } else {
-            if (sscanf(aTotalParms[iCurParm], "%d", pParm->pParmValue) == 0) {
+            if (sscanf(aTotalParms[iCurParm], "%"SCANS32, (SINT32 *) pParm->pParmValue) == 0) {
               HelpBadParm(aTotalParms[iCurParm - 1]);
             }
           }
@@ -1455,7 +1455,7 @@ void ParseParameters(ALGPARMLIST *pParmList) {
                         AddDynamicParm(pRep->aParameters[iNumRepParms], DTypeUInt, &iNumVars, fTemp);
                         *((UINT32 *) pRep->aParameters[iNumRepParms]) = 0;
                       } else {
-                        if (sscanf(aTotalParms[iCurParm], "%i", pRep->aParameters[iNumRepParms]) == 0) {
+                        if (sscanf(aTotalParms[iCurParm],"%"SCAN32,(UINT32 *) pRep->aParameters[iNumRepParms])==0) {
                           HelpBadParm(aTotalParms[iCurParm]);
                         }
                       }
@@ -1532,11 +1532,14 @@ void PrintAlgParmSettings(REPORT *pRep, ALGPARMLIST *pParmList) {
     ReportHdrPrefix(pRep);
     ReportHdrPrint1(pRep, " %s ", pCurParm->sSwitch);
     switch (pCurParm->eType) {
-      case PTypeUInt: ReportHdrPrint1(pRep, "%u ", *(UINT32 *) pCurParm->pParmValue);
+      case PTypeUInt:
+        ReportHdrPrint1(pRep,"%"P32" ", *(UINT32 *)pCurParm->pParmValue);
         break;
-      case PTypeSInt: ReportHdrPrint1(pRep, "%d ", *(int *) pCurParm->pParmValue);
+      case PTypeSInt:
+        ReportHdrPrint1(pRep,"%"PS32" ", *(SINT32 *)pCurParm->pParmValue);
         break;
-      case PTypeProbability: ReportHdrPrint1(pRep, "%f ", ProbToFloat(*(PROBABILITY *) pCurParm->pParmValue));
+      case PTypeProbability:
+        ReportHdrPrint1(pRep,"%.4g ", ProbToFloat(*(PROBABILITY *)pCurParm->pParmValue));
         break;
       case PTypeString:
         if (**(char **) pCurParm->pParmValue == 0) {
@@ -1545,14 +1548,18 @@ void PrintAlgParmSettings(REPORT *pRep, ALGPARMLIST *pParmList) {
           ReportHdrPrint1(pRep, "%s ", *(char **) pCurParm->pParmValue);
         }
         break;
-      case PTypeFloat: ReportHdrPrint1(pRep, "%f ", *(FLOAT *) pCurParm->pParmValue);
+      case PTypeFloat:
+        ReportHdrPrint1(pRep,"%.6g ", *(FLOAT *)pCurParm->pParmValue);
         break;
-      case PTypeBool: ReportHdrPrint1(pRep, "%u ", *(BOOL *) pCurParm->pParmValue);
+      case PTypeBool:
+        ReportHdrPrint1(pRep,"%u", (unsigned int) *(BOOL *)pCurParm->pParmValue);
         break;
       case PTypeReport:
         break;
+      default:
+        break;
     }
-    ReportHdrPrint(pRep, "\n");
+    ReportHdrPrint(pRep,"\n");
   }
 }
 

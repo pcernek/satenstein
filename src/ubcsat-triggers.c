@@ -1263,7 +1263,7 @@ void InitVarsFromFile() {
             } else {
               *pPos++=0;
 
-              sscanf(pStart,"%d",&iLit);
+              sscanf(pStart,"%"SCANS32,&iLit);
 
               if (iLit) {
                 if (iLit > 0) {
@@ -1289,7 +1289,7 @@ void InitVarsFromFile() {
             *pPos = 0;
 
           if (strlen(pStart)) {
-            sscanf(pStart,"%d",&iLit);
+            sscanf(pStart,"%"SCANS32,&iLit);
 
             if (iLit) {
               if (iLit > 0) {

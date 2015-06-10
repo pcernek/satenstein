@@ -131,13 +131,13 @@ extern FLOAT fBestScore;
     CreateAlgorithm()     add a new algorithm to the UBCSAT system
 */
 
-ALGORITHM *CreateAlgorithm (const char *sName, const char *sVariant, BOOL bWeighted, 
-                            const char *sDescription, 
-                            const char *sAuthors,
-                            const char *sHeuristicTriggers,
-                            const char *sDataTriggers,
-                            const char *sDefaultOutput,
-                            const char *sDefaultStats);
+ALGORITHM *CreateAlgorithm(const char *sName, const char *sVariant, BOOL bWeighted,
+                           const char *sDescription,
+                           const char *sAuthors,
+                           const char *sHeuristicTriggers,
+                           const char *sDataTriggers,
+                           const char *sDefaultOutput,
+                           const char *sDefaultStats);
 
 
 /*
@@ -188,62 +188,62 @@ void DeActivateTriggers(char *sTriggers);
 
 
 void AddParmProbability(ALGPARMLIST *pParmList,
-                  const char *sSwitch, 
-                  const char *sName, 
-                  const char *sDescription,
-                  const char *sTriggers,
-                  PROBABILITY *pProb,
-                  FLOAT fProb);
+                        const char *sSwitch,
+                        const char *sName,
+                        const char *sDescription,
+                        const char *sTriggers,
+                        PROBABILITY *pProb,
+                        FLOAT fProb);
 
-void AddParmUInt(ALGPARMLIST *pParmList, 
-                  const char *sSwitch, 
-                  const char *sName, 
-                  const char *sDescription,
-                  const char *sTriggers,
-                  UINT32 *pInt,
-                  UINT32 iDefInt);
+void AddParmUInt(ALGPARMLIST *pParmList,
+                 const char *sSwitch,
+                 const char *sName,
+                 const char *sDescription,
+                 const char *sTriggers,
+                 UINT32 *pInt,
+                 UINT32 iDefInt);
 
-void AddParmSInt(ALGPARMLIST *pParmList, 
-                  const char *sSwitch, 
-                  const char *sName, 
-                  const char *sDescription,
-                  const char *sTriggers,
-                  SINT32 *pSInt,
-                  SINT32 iDefSInt);
+void AddParmSInt(ALGPARMLIST *pParmList,
+                 const char *sSwitch,
+                 const char *sName,
+                 const char *sDescription,
+                 const char *sTriggers,
+                 SINT32 *pSInt,
+                 SINT32 iDefSInt);
 
-void AddParmBool(ALGPARMLIST *pParmList, 
-                  const char *sSwitch, 
-                  const char *sName, 
-                  const char *sDescription,
-                  const char *sTriggers,
-                  BOOL *pBool,
-                  BOOL bDefBool);
+void AddParmBool(ALGPARMLIST *pParmList,
+                 const char *sSwitch,
+                 const char *sName,
+                 const char *sDescription,
+                 const char *sTriggers,
+                 BOOL *pBool,
+                 BOOL bDefBool);
 
-void AddParmFloat(ALGPARMLIST *pParmList, 
-                  const char *sSwitch, 
-                  const char *sName, 
+void AddParmFloat(ALGPARMLIST *pParmList,
+                  const char *sSwitch,
+                  const char *sName,
                   const char *sDescription,
                   const char *sTriggers,
                   FLOAT *pFloat,
                   FLOAT fDefFloat);
 
-void AddParmString(ALGPARMLIST *pParmList, 
-                  const char *sSwitch, 
-                  const char *sName, 
-                  const char *sDescription,
-                  const char *sTriggers,
-                  char **pString,
-                  char *sDefString);
+void AddParmString(ALGPARMLIST *pParmList,
+                   const char *sSwitch,
+                   const char *sName,
+                   const char *sDescription,
+                   const char *sTriggers,
+                   char **pString,
+                   char *sDefString);
 
-                  
+
 /*
     CreateReport()        add a new report to the system
 */
 
-REPORT *CreateReport(const char *sID, 
-                     const char *sDescription, 
-                     const char *sVerboseDescription, 
-                     const char *sOutputFile, 
+REPORT *CreateReport(const char *sID,
+                     const char *sDescription,
+                     const char *sVerboseDescription,
+                     const char *sOutputFile,
                      const char *sTriggers);
 
 /*
@@ -251,56 +251,59 @@ REPORT *CreateReport(const char *sID,
 */
 
 void AddReportParmUInt(REPORT *pRep, const char *sParmName, UINT32 *pParmValUInt, UINT32 iDefault);
+
 void AddReportParmFloat(REPORT *pRep, const char *sParmName, FLOAT *pParmValFloat, FLOAT fDefault);
+
 void AddReportParmString(REPORT *pRep, const char *sParmName, const char *pDefault);
+
 void AddReportParmBool(REPORT *pRep, const char *sParmName, BOOL *pParmValBool, BOOL bDefault);
 
 /*
     AddColumn????()       add a column of data for output & rtd reports
 */
 
-void AddColumnUInt(const char *sID, 
-                   const char *sDescription, 
-                   char *sHeader1,  
-                   char *sHeader2,  
-                   char *sHeader3, 
-                   char *sPrintFormat, 
+void AddColumnUInt(const char *sID,
+                   const char *sDescription,
+                   char *sHeader1,
+                   char *sHeader2,
+                   char *sHeader3,
+                   char *sPrintFormat,
                    UINT32 *pCurValue,
                    char *sTriggers,
                    enum COLTYPE eColType);
 
-void AddColumnFloat(const char *sID, 
-                    const char *sDescription, 
-                    char *sHeader1,  
-                    char *sHeader2,  
-                    char *sHeader3, 
+void AddColumnFloat(const char *sID,
+                    const char *sDescription,
+                    char *sHeader1,
+                    char *sHeader2,
+                    char *sHeader3,
                     char *sPrintFormat,
                     FLOAT *pCurValue,
                     char *sTriggers,
                     enum COLTYPE eColType);
 
-void AddColumnComposite(const char *sID, 
+void AddColumnComposite(const char *sID,
                         const char *sList);
 
 /*
     AddStatCol()       add a column statistic, providing stats on columns of data 
 */
 
-void AddStatCol(const char *sID, 
-             const char *sBaseDescription, 
-             const char *sDefParm,
-             BOOL bSortByStep);
+void AddStatCol(const char *sID,
+                const char *sBaseDescription,
+                const char *sDefParm,
+                BOOL bSortByStep);
 
-void AddContainerStat(const char *sID, 
+void AddContainerStat(const char *sID,
                       const char *sList);
 
 /*
     AddStatCustom()     add a custom statistic, which can be calculated via triggers
 */
 
-void AddStatCustom(const char *sID, 
-                   const char *sCustomDescription, 
-                   const char *sBaseDescription, 
+void AddStatCustom(const char *sID,
+                   const char *sCustomDescription,
+                   const char *sBaseDescription,
                    const char *sPrintCustomFormat,
                    void *pCurValue,
                    enum CDATATYPE eCustomType,
@@ -314,3 +317,6 @@ void AddStatCustom(const char *sID,
 
 BOOL IsLocalMinimum(BOOL bUseWeighted);
 
+#ifdef __cplusplus
+}
+#endif

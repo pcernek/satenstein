@@ -76,7 +76,7 @@ void DccaTest::initializeArrays() {
   _numSDvars = 5;
   UINT32 tempSDvarsList[] = {1,2,3,4,5};
   _sdVarsList = (UINT32 *) malloc( _numSDvars * sizeof(UINT32));
-  copyArray(tempNVDvarsList, _sdVarsList, _numSDvars);
+  copyArray(tempSDvarsList, _sdVarsList, _numSDvars);
 
 }
 

@@ -951,43 +951,43 @@ void PickVW2Automated() {
 
   iNumOcc = aNumLitOcc[GetNegatedLit(*pRandomLit)];
   pClause = pLitClause[GetNegatedLit(*pRandomLit)];
- if(!bPen){
-  for (i=0;i<iNumOcc;i++) {
-      if (aNumTrueLit[*pClause]==1) {
+  if (!bPen) {
+    for (i = 0; i < iNumOcc; i++) {
+      if (aNumTrueLit[*pClause] == 1) {
         BestB++;
         // POSSIBLE TODO: EARLY EXIT IF FREEBIE WAS PREVIOUSLY FOUND?
       }
       pClause++;
-   }
-}
- else{
-    for (i=0;i<iNumOcc;i++) {
-      if (aNumTrueLit[*pClause]==1) {
-        BestB+= aClausePen[*pClause];
+    }
+  }
+  else {
+    for (i = 0; i < iNumOcc; i++) {
+      if (aNumTrueLit[*pClause] == 1) {
+        BestB += aClausePen[*pClause];
         // POSSIBLE TODO: EARLY EXIT IF FREEBIE WAS PREVIOUSLY FOUND?
       }
       pClause++;
-   }
-}
-   //printf("\n %d",BestB);
-  if(BestB ==0){
-     iFlipCandidate = BestV;
-     //printf("\n %u",aBreakCount[BestV]);
-     //printf(" I have luckily found a freebie");
-     return;
+    }
+  }
+  //printf("\n %d",BestB);
+  if (BestB == 0) {
+    iFlipCandidate = BestV;
+    //printf("\n %u",aBreakCount[BestV]);
+    //printf(" I have luckily found a freebie");
+    return;
   }
 
   BestC = aVW2Weights[BestV];
   //printf("\n %d",BestC);
-   pLit = pClauseLits[iClause];
+  pLit = pClauseLits[iClause];
 
-  for (j=0;j<iClauseLen;j++) {
+  for (j = 0; j < iClauseLen; j++) {
 
-     randomInt++;
-     if(randomInt>=iClauseLen)
-     randomInt =0;
+    randomInt++;
+    if (randomInt >= iClauseLen)
+      randomInt = 0;
 
-     pRandomLit = pLit + randomInt;
+    pRandomLit = pLit + randomInt;
 
 
     /* for WalkSAT variants, it's faster to calculate the
@@ -1002,27 +1002,24 @@ void PickVW2Automated() {
     iNumOcc = aNumLitOcc[GetNegatedLit(*pRandomLit)];
     pClause = pLitClause[GetNegatedLit(*pRandomLit)];
 
-  if(!bPen){
-    for (i=0;i<iNumOcc;i++) {
-      if (aNumTrueLit[*pClause]==1) {
-        B++;
-        // POSSIBLE TODO: EARLY EXIT IF FREEBIE WAS PREVIOUSLY FOUND?
+    if (!bPen) {
+      for (i = 0; i < iNumOcc; i++) {
+        if (aNumTrueLit[*pClause] == 1) {
+          B++;
+          // POSSIBLE TODO: EARLY EXIT IF FREEBIE WAS PREVIOUSLY FOUND?
+        }
+        pClause++;
       }
-      pClause++;
     }
- }
- else{
-    for (i=0;i<iNumOcc;i++) {
-      if (aNumTrueLit[*pClause]==1) {
-        B+= aClausePen[*pClause];
-        // POSSIBLE TODO: EARLY EXIT IF FREEBIE WAS PREVIOUSLY FOUND?
+    else {
+      for (i = 0; i < iNumOcc; i++) {
+        if (aNumTrueLit[*pClause] == 1) {
+          B += aClausePen[*pClause];
+          // POSSIBLE TODO: EARLY EXIT IF FREEBIE WAS PREVIOUSLY FOUND?
+        }
+        pClause++;
       }
-      pClause++;
     }
-}
-
-
-
 
     /* build candidate list of best vars */
 
@@ -1033,18 +1030,17 @@ void PickVW2Automated() {
 
     C = aVW2Weights[iVar];
 
-    if (B<BestB || C<BestC && (B==BestB || expchance(B-BestB)))
-      {  BestV=iVar;  BestB=B;  BestC=C;
-      }
-
-
-
+    if (B < BestB || (C < BestC && (B == BestB || expchance(B - BestB)))) {
+      BestV = iVar;
+      BestB = B;
+      BestC = C;
+    }
 
 
   }
 
- iFlipCandidate = BestV;
- return;
+  iFlipCandidate = BestV;
+  return;
 }
 
 

@@ -396,7 +396,7 @@ void PickNovelty() {
   UINT32 iBestVar = 0;
   UINT32 iSecondBestVar = 0;
 
-
+  iBestScoreWithoutPen = iNumClauses;
   iBestScore = bPen ? iTotalWeight : iNumClauses;
   iSecondBestScore = bPen ? iTotalWeight : iNumClauses;
 
@@ -763,11 +763,11 @@ void PickNoveltyPromising()
   SINT32 iScore;
   UINT32 iYoungestVar;
   SINT32 iSecondBestScore;
-  UINT32 iBestVar=0;
-  UINT32 iSecondBestVar=0;
+  UINT32 iBestVar = 0;
+  UINT32 iSecondBestVar = 0;
   SINT32 iBestScoreWithoutPen;
   SINT32 iScoreWithoutPen;
- 
+
   LITTYPE litPick;
 
   SINT32 iSecondBestLookAheadScore;
@@ -780,97 +780,74 @@ void PickNoveltyPromising()
     iClause = SelectClause();
     iClauseLen = aClauseLen[iClause];
 
-    if (FALSE) {
+    iBestScore = bPen ? iTotalWeight : iNumClauses;
+    iSecondBestScore = bPen ? iTotalWeight : iNumClauses;
+    iBestScoreWithoutPen = iNumClauses;
 
+    pLit = pClauseLits[iClause];
+    iYoungestVar = GetVarFromLit(*pLit);
+    for (j = 0; j < iClauseLen; j++) {
+      iVar = GetVarFromLit(*pLit);
 
-    } else {
-      iBestScore = bPen ? iTotalWeight : iNumClauses;
-      iSecondBestScore = bPen ? iTotalWeight : iNumClauses;
-      pLit = pClauseLits[iClause];
-      iYoungestVar = GetVarFromLit(*pLit);
+      /* use the cached score value for that literal */
+      iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
+      iScoreWithoutPen = aVarScore[iVar];
+      /* keep track of which literal was the 'youngest' */
 
-      /* for each literal in the clause */
-
-      for (j=0;j<iClauseLen;j++) {
-        iVar = GetVarFromLit(*pLit);
-
-        /* use the cached score value for that literal */
-        iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
-        iScoreWithoutPen = aVarScore[iVar];
-        /* keep track of which literal was the 'youngest' */
-
-        if (aVarLastChange[iVar] > aVarLastChange[iYoungestVar]) {
-          iYoungestVar = iVar;
-        }
-
-        /* keep track of the 'best' and the 'second best' variables,
-           breaking ties by selecting the younger variables */
-
-        if ((iScore < iBestScore) || ((iScore == iBestScore) && (aVarLastChange[iVar] < aVarLastChange[iBestVar]))) {
-          iSecondBestVar = iBestVar;
-          iBestVar = iVar;
-          iSecondBestScore = iBestScore;
-          iBestScore = iScore;
-          iBestScoreWithoutPen = iScoreWithoutPen;
-        } else if ((iScore < iSecondBestScore) || ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestVar]))) {
-          iSecondBestVar = iVar;
-          iSecondBestScore = iScore;
-        }
-        pLit++;
+      if (aVarLastChange[iVar] > aVarLastChange[iYoungestVar]) {
+        iYoungestVar = iVar;
       }
 
-      /* choose the 'best' variable by default */
+      /* keep track of the 'best' and the 'second best' variables,
+         breaking ties by selecting the younger variables */
 
-      iFlipCandidate = iBestVar;
-
-      /* If the best is the youngest, with probability (iNovNoise) select the 2nd best */
-
-      if (iFlipCandidate == iYoungestVar) {
-      if((bPerformNoveltyAlternate && (iBestScoreWithoutPen ==0))|| (RandomProb(iNovNoise))){
-       iFlipCandidate = iSecondBestVar;
-          return;
-        }
-      } else {
-
-        /* If the best is older than then 2nd best, just choose the best */
-
-        if (aVarLastChange[iSecondBestVar] >= aVarLastChange[iFlipCandidate]) {
-          return;
-        }
+      if ((iScore < iBestScore) || ((iScore == iBestScore) && (aVarLastChange[iVar] < aVarLastChange[iBestVar]))) {
+        iSecondBestVar = iBestVar;
+        iBestVar = iVar;
+        iSecondBestScore = iBestScore;
+        iBestScore = iScore;
+        iBestScoreWithoutPen = iScoreWithoutPen;
+      } else if ((iScore < iSecondBestScore) ||
+                 ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestVar]))) {
+        iSecondBestVar = iVar;
+        iSecondBestScore = iScore;
       }
+      pLit++;
+    }
 
-      /* otherwise, determine the 'look ahead' score for the 2nd best variable */
+    iFlipCandidate = iBestVar;
 
-      iSecondBestLookAheadScore = bPen ? aVarPenScore[iSecondBestVar] + BestLookAheadPenScore(iSecondBestVar):
-                                            aVarScore[iSecondBestVar] + BestLookAheadScore(iSecondBestVar);
-
-      if (iSecondBestLookAheadScore > iBestScore) {
-        iBestLookAheadScore = iBestScore;
-      } else {
-
-        /* if the 'look ahead' score for the 2nd variable is better than the regular score
-           for the best variable, calculate the look ahead score for the best variable */
-
-        iBestLookAheadScore =bPen ?  aVarPenScore[iFlipCandidate] + BestLookAheadPenScore(iFlipCandidate) :
-                                        aVarScore[iFlipCandidate] + BestLookAheadScore(iFlipCandidate);
-      }
-
-      /* choose the variable with the best look ahead score */
-
-      /* Note that this BREAKS TIES by selecting the 2nd best variable -- as in the paper and in the author's code */
-
-      if (iBestLookAheadScore >= iSecondBestLookAheadScore) {
+    if (iFlipCandidate == iYoungestVar) {
+      if ((bPerformNoveltyAlternate && (iBestScoreWithoutPen == 0)) || (RandomProb(iNovNoise))) {
         iFlipCandidate = iSecondBestVar;
+        return;
       }
+    } else {
+
+      /* If the best is older than then 2nd best, just choose the best */
+
+      if (aVarLastChange[iSecondBestVar] >= aVarLastChange[iFlipCandidate]) {
+        return;
+      }
+    }
+    iSecondBestLookAheadScore = bPen ? aVarPenScore[iSecondBestVar] + BestLookAheadPenScore(iSecondBestVar) :
+                                aVarScore[iSecondBestVar] + BestLookAheadScore(iSecondBestVar);
+    if (iSecondBestLookAheadScore > iBestScore) {
+      iBestLookAheadScore = iBestScore;
+    } else {
+
+      /* if the 'look ahead' score for the 2nd variable is better than the regular score
+         for the best variable, calculate the look ahead score for the best variable */
+
+      iBestLookAheadScore = bPen ? aVarPenScore[iFlipCandidate] + BestLookAheadPenScore(iFlipCandidate) :
+                            aVarScore[iFlipCandidate] + BestLookAheadScore(iFlipCandidate);
+    }
+    if (iBestLookAheadScore >= iSecondBestLookAheadScore) {
+      iFlipCandidate = iSecondBestVar;
     }
   } else {
     iFlipCandidate = 0;
   }
-
-
-
-
-
 
 }
 
@@ -1556,9 +1533,8 @@ SINT32 BestLookAheadScore(UINT32 iLookVar) {
 
 
 
-void PickNoveltyPlusPlusPrimePromising()
-{
-   UINT32 j;
+void PickNoveltyPlusPlusPrimePromising() {
+  UINT32 j;
   UINT32 iClause;
   UINT32 iClauseLen;
   UINT32 iVar;
@@ -1566,8 +1542,8 @@ void PickNoveltyPlusPlusPrimePromising()
   SINT32 iScore;
   UINT32 iYoungestVar;
   SINT32 iSecondBestScore;
-  UINT32 iBestVar=0;
-  UINT32 iSecondBestVar=0;
+  UINT32 iBestVar = 0;
+  UINT32 iSecondBestVar = 0;
   SINT32 iBestScoreWithoutPen;
   SINT32 iScoreWithoutPen;
 
@@ -1582,150 +1558,117 @@ void PickNoveltyPlusPlusPrimePromising()
 
     iClause = SelectClause();
     iClauseLen = aClauseLen[iClause];
-    if(iClauseLen ==0){
-    printf(" This is surely wrong");
-    iFlipCandidate = 0;
-    return;
-   }
-  
+    if (iClauseLen == 0) {
+      printf(" This is surely wrong");
+      iFlipCandidate = 0;
+      return;
+    }
 
-    if (FALSE) {
+    iBestScore = bPen ? iTotalWeight : iNumClauses;
+    iSecondBestScore = bPen ? iTotalWeight : iNumClauses;
+    iBestScoreWithoutPen = iNumClauses;
+
+    pLit = pClauseLits[iClause];
+    iYoungestVar = GetVarFromLit(*pLit);
+    for (j = 0; j < iClauseLen; j++) {
+      iVar = GetVarFromLit(*pLit);
+
+      /* use the cached score value for that literal */
+      iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
+      iScoreWithoutPen = aVarScore[iVar];
+      /* keep track of which literal was the 'youngest' */
+
+      if (aVarLastChange[iVar] > aVarLastChange[iYoungestVar]) {
+        iYoungestVar = iVar;
+      }
+
+      /* keep track of the 'best' and the 'second best' variables,
+         breaking ties by selecting the younger variables */
+
+      if ((iScore < iBestScore) || ((iScore == iBestScore) && (aVarLastChange[iVar] < aVarLastChange[iBestVar]))) {
+        iSecondBestVar = iBestVar;
+        iBestVar = iVar;
+        iSecondBestScore = iBestScore;
+        iBestScore = iScore;
+        iBestScoreWithoutPen = iScoreWithoutPen;
+      } else if ((iScore < iSecondBestScore) ||
+                 ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestVar]))) {
+        iSecondBestVar = iVar;
+        iSecondBestScore = iScore;
+      }
+      pLit++;
+    }
+    if (RandomProb(iDp)) {
 
 
-    } else {
-      iBestScore = bPen ? iTotalWeight : iNumClauses;
-      iSecondBestScore = bPen ? iTotalWeight : iNumClauses;
+    }
+    if (RandomProb(iDp)) {
       pLit = pClauseLits[iClause];
-      iYoungestVar = GetVarFromLit(*pLit);
+      iNumCandidates = 0;
 
-      /* for each literal in the clause */
+      if (iClauseLen <= 2) {
+        if (iClauseLen == 1) {
+          litPick = (pClauseLits[iClause][0]);
+          iFlipCandidate = GetVarFromLit(litPick);
+          return;
+        }
+        else {
+          litPick = (pClauseLits[iClause][RandomInt(iClauseLen)]);
+          iFlipCandidate = GetVarFromLit(litPick);
+          return;
+        }
+
+      }
 
       for (j = 0; j < iClauseLen; j++) {
+
+        /* for WalkSAT variants, it's faster to calculate the
+           score for each literal than to cache the values */
+
         iVar = GetVarFromLit(*pLit);
 
-        /* use the cached score value for that literal */
-        iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
-        iScoreWithoutPen = aVarScore[iVar];
-        /* keep track of which literal was the 'youngest' */
-
-        if (aVarLastChange[iVar] > aVarLastChange[iYoungestVar]) {
-          iYoungestVar = iVar;
+        if ((iVar != iBestVar) && (iVar != iSecondBestVar)) {
+          aCandidateList[iNumCandidates++] = iVar;
         }
 
-        /* keep track of the 'best' and the 'second best' variables,
-           breaking ties by selecting the younger variables */
-
-        if ((iScore < iBestScore) || ((iScore == iBestScore) && (aVarLastChange[iVar] < aVarLastChange[iBestVar]))) {
-          iSecondBestVar = iBestVar;
-          iBestVar = iVar;
-          iSecondBestScore = iBestScore;
-          iBestScore = iScore;
-          iBestScoreWithoutPen = iScoreWithoutPen;
-        } else if ((iScore < iSecondBestScore) ||
-                   ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestVar]))) {
-          iSecondBestVar = iVar;
-          iSecondBestScore = iScore;
-        }
         pLit++;
-      }
-
-      if (RandomProb(iDp)) {
-
 
       }
+      if (iNumCandidates > 1)
+        iFlipCandidate = aCandidateList[RandomInt(iNumCandidates)];
+      else
+        iFlipCandidate = aCandidateList[0];
+      return;
 
-
-
-
-      /* For diversification probability dp a variable is selected at random after excluding the best and second best
-   variables */
-      /* choose the 'best' variable by default */
-      /* For diversification probability dp a variable is selected at random after excluding the best and second best
-   variables */
-      /* For diversification probability dp a variable is selected at random after excluding the best and second best
-   variables */
-      if (RandomProb(iDp)) {
-        pLit = pClauseLits[iClause];
-        iNumCandidates = 0;
-
-        if (iClauseLen <= 2) {
-          if (iClauseLen == 1) {
-            litPick = (pClauseLits[iClause][0]);
-            iFlipCandidate = GetVarFromLit(litPick);
-            return;
-          }
-          else {
-            litPick = (pClauseLits[iClause][RandomInt(iClauseLen)]);
-            iFlipCandidate = GetVarFromLit(litPick);
-            return;
-          }
-
-        }
-
-        for (j = 0; j < iClauseLen; j++) {
-
-          /* for WalkSAT variants, it's faster to calculate the
-             score for each literal than to cache the values */
-
-          iVar = GetVarFromLit(*pLit);
-
-          if ((iVar != iBestVar) && (iVar != iSecondBestVar)) {
-            aCandidateList[iNumCandidates++] = iVar;
-          }
-
-          pLit++;
-
-        }
-        if (iNumCandidates > 1)
-          iFlipCandidate = aCandidateList[RandomInt(iNumCandidates)];
-        else
-          iFlipCandidate = aCandidateList[0];
-        return;
-
-      }
-
-
-      iFlipCandidate = iBestVar;
-
-      /* If the best is the youngest, with probability (iNovNoise) select the 2nd best */
-
-      if (iFlipCandidate == iYoungestVar) {
-        if ((bPerformNoveltyAlternate && iBestScoreWithoutPen == 0) || (RandomProb(iNovNoise))) {
-          iFlipCandidate = iSecondBestVar;
-          return;
-        }
-      } else {
-
-        /* If the best is older than then 2nd best, just choose the best */
-
-        if (aVarLastChange[iSecondBestVar] >= aVarLastChange[iFlipCandidate]) {
-          return;
-        }
-      }
-
-      /* otherwise, determine the 'look ahead' score for the 2nd best variable */
-
-      iSecondBestLookAheadScore = bPen ? aVarPenScore[iSecondBestVar] + BestLookAheadPenScore(iSecondBestVar) :
-                                            aVarScore[iSecondBestVar] + BestLookAheadScore(iSecondBestVar);
-
-      if (iSecondBestLookAheadScore > iBestScore) {
-        iBestLookAheadScore = iBestScore;
-      } else {
-
-        /* if the 'look ahead' score for the 2nd variable is better than the regular score
-           for the best variable, calculate the look ahead score for the best variable */
-
-        iBestLookAheadScore = bPen ? aVarPenScore[iFlipCandidate] + BestLookAheadPenScore(iFlipCandidate) :
-                                        aVarScore[iFlipCandidate] + BestLookAheadScore(iFlipCandidate);
-      }
-
-      /* choose the variable with the best look ahead score */
-
-      /* Note that this BREAKS TIES by selecting the 2nd best variable -- as in the paper and in the author's code */
-
-      if (iBestLookAheadScore >= iSecondBestLookAheadScore) {
+    }
+    iFlipCandidate = iBestVar;
+    if (iFlipCandidate == iYoungestVar) {
+      if ((bPerformNoveltyAlternate && iBestScoreWithoutPen == 0) || (RandomProb(iNovNoise))) {
         iFlipCandidate = iSecondBestVar;
+        return;
       }
+    } else {
+
+      /* If the best is older than then 2nd best, just choose the best */
+
+      if (aVarLastChange[iSecondBestVar] >= aVarLastChange[iFlipCandidate]) {
+        return;
+      }
+    }
+    iSecondBestLookAheadScore = bPen ? aVarPenScore[iSecondBestVar] + BestLookAheadPenScore(iSecondBestVar) :
+                                aVarScore[iSecondBestVar] + BestLookAheadScore(iSecondBestVar);
+    if (iSecondBestLookAheadScore > iBestScore) {
+      iBestLookAheadScore = iBestScore;
+    } else {
+
+      /* if the 'look ahead' score for the 2nd variable is better than the regular score
+         for the best variable, calculate the look ahead score for the best variable */
+
+      iBestLookAheadScore = bPen ? aVarPenScore[iFlipCandidate] + BestLookAheadPenScore(iFlipCandidate) :
+                            aVarScore[iFlipCandidate] + BestLookAheadScore(iFlipCandidate);
+    }
+    if (iBestLookAheadScore >= iSecondBestLookAheadScore) {
+      iFlipCandidate = iSecondBestVar;
     }
   } else {
     iFlipCandidate = 0;

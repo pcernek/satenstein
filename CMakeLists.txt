@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(SATenstein)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -lm")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -lm -Wall -Wno-implicit-function-declaration -Wno-unused-variable -Wno-unused-but-set-variable -Wno-comment")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 include_directories( src )

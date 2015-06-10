@@ -621,18 +621,18 @@ void HelpPrintParametersTerse(ALGPARMLIST *pParmList) {
         sprintf(sHelpString,"%d",pCurParm->defDefault.iSInt);
         break;
       case PTypeProbability:
-        sprintf(sHelpString,"%3,2f",ProbToFloat(pCurParm->defDefault.iProb));
+        sprintf(sHelpString,"%.4g",ProbToFloat(pCurParm->defDefault.iProb));
         break;
       case PTypeString:
-        sprintf(sHelpString,"");
         break;
       case PTypeFloat:
-        sprintf(sHelpString,"%g",pCurParm->defDefault.fFloat);
+        sprintf(sHelpString,"%.6g",pCurParm->defDefault.fFloat);
         break;
       case PTypeReport:
-        sprintf(sHelpString,"");
         break;
-    }  
+      default:
+        break;
+    }
 
     ReportPrint1(pRepHelp," %-18s ",pCurParm->sSwitch);
     ReportPrint1(pRepHelp,pCurParm->sTerseDescription,sHelpString);
@@ -658,10 +658,12 @@ void HelpPrintAlgParameters(ALGORITHM *pCurAlg) {
 
   if (pCurAlg) {
     ReportPrint1(pRepHelp,"-alg %s",pCurAlg->sName);
-    if (*pCurAlg->sVariant != 0)
+    if (*pCurAlg->sVariant != 0) {
       ReportPrint1(pRepHelp," -v %s",pCurAlg->sVariant);
-    if (pCurAlg->bWeighted)
+    }
+    if (pCurAlg->bWeighted) {
       ReportPrint(pRepHelp," -w");
+    }
     ReportPrint(pRepHelp,"\n");
 
     ReportPrint1(pRepHelp,"  %s\n",pCurAlg->sDescription);
@@ -675,11 +677,12 @@ void HelpPrintAlgParametersTerse(ALGORITHM *pCurAlg) {
 
   if (strcmp(pCurAlg->sName,"default")!=0) {
     ReportPrint1(pRepHelp,"-alg %s",pCurAlg->sName);
-    if (*pCurAlg->sVariant != 0)
+    if (*pCurAlg->sVariant != 0) {
       ReportPrint1(pRepHelp," -v %s",pCurAlg->sVariant);
-    if (pCurAlg->bWeighted)
+    }
+    if (pCurAlg->bWeighted) {
       ReportPrint(pRepHelp," -w");
-    ReportPrint(pRepHelp,"");
+    }
   }
   HelpPrintParametersTerse(&pCurAlg->parmList);
 }

@@ -86,7 +86,7 @@ void AddRNoveltyPlus() {
 
 void PickRNoveltyCore()
 {
- 
+
   UINT32 i;
   UINT32 j;
   SINT32 iScore;
@@ -103,24 +103,23 @@ void PickRNoveltyCore()
 
   SINT32 iSecondBestScore;
   SINT32 iScoreMargin;
-  
-  UINT32 iBestVar=0;
-  UINT32 iSecondBestVar=0;
+
+  UINT32 iBestVar = 0;
+  UINT32 iSecondBestVar = 0;
 
   iBestScore = iNumClauses;
   iSecondBestScore = iNumClauses;
 
-  UINT32 iTabuCutoff;   
-       if(bTabu)
-  {
-      if (iStep > iTabuTenure) {
-       iTabuCutoff = iStep - iTabuTenure;
+  UINT32 iTabuCutoff = 0; // TODO: remove dummy initialization that eliminates compiler warnings
+  if (bTabu) {
+    if (iStep > iTabuTenure) {
+      iTabuCutoff = iStep - iTabuTenure;
       if (iVarLastChangeReset > iTabuCutoff) {
-       iTabuCutoff = iVarLastChangeReset;
-     }
-   } else {
-    iTabuCutoff = 1;
-   }
+        iTabuCutoff = iVarLastChangeReset;
+      }
+    } else {
+      iTabuCutoff = 1;
+    }
   }
 
   /* select an unsatisfied clause uniformly at random */
@@ -137,7 +136,7 @@ void PickRNoveltyCore()
 
   iYoungestVar = GetVarFromLit(*pLit);
 
-  for (j=0;j<iClauseLen;j++) {
+  for (j = 0; j < iClauseLen; j++) {
 
     /* for WalkSAT variants, it's faster to calculate the
        score for each literal than to cache the values */
@@ -145,174 +144,175 @@ void PickRNoveltyCore()
     iScore = 0;
 
     iVar = GetVarFromLit(*pLit);
-   
-    if(!bTabu)
-    { 
-    iScore = 0;
-    iScoreWithoutPen = 0;
-    iVar = GetVarFromLit(*pLit);
-    /*The computation of score is necessary only when
-      the varscore trigger is not activated. Also,
-      we need to check whether clause penalty is
-      activated. If it is activated then, we need
-      to take account of the clause weight*/
-    if(!bPromisingList && !bPen){
-    iNumOcc = aNumLitOcc[*pLit];
-    pClause = pLitClause[*pLit];
-    for (i=0;i<iNumOcc;i++) {
-      if (aNumTrueLit[*pClause]==0) {
-        iScore--;
-        iScoreWithoutPen --;
-      }
-      pClause++;
-    }
 
-    iNumOcc = aNumLitOcc[GetNegatedLit(*pLit)];
-    pClause = pLitClause[GetNegatedLit(*pLit)];
-
-    for (i=0;i<iNumOcc;i++) {
-      if (aNumTrueLit[*pClause]==1) {
-        iScore++;
-        iScoreWithoutPen++;
-      }
-      pClause++;
-    }
-    }else if(!bPromisingList && bPen){
-    //Promising List is not used but Clause Penalty is activated
+    if (!bTabu) {
+      iScore = 0;
+      iScoreWithoutPen = 0;
+      iVar = GetVarFromLit(*pLit);
+      /*The computation of score is necessary only when
+        the varscore trigger is not activated. Also,
+        we need to check whether clause penalty is
+        activated. If it is activated then, we need
+        to take account of the clause weight*/
+      if (!bPromisingList && !bPen) {
         iNumOcc = aNumLitOcc[*pLit];
         pClause = pLitClause[*pLit];
-        for (i=0;i<iNumOcc;i++) {
-         if (aNumTrueLit[*pClause]==0) {
-          iScore -= aClausePen[*pClause];
-          iScoreWithoutPen--;
-         }
-        pClause++;
-      }
+        for (i = 0; i < iNumOcc; i++) {
+          if (aNumTrueLit[*pClause] == 0) {
+            iScore--;
+            iScoreWithoutPen--;
+          }
+          pClause++;
+        }
 
-    iNumOcc = aNumLitOcc[GetNegatedLit(*pLit)];
-    pClause = pLitClause[GetNegatedLit(*pLit)];
+        iNumOcc = aNumLitOcc[GetNegatedLit(*pLit)];
+        pClause = pLitClause[GetNegatedLit(*pLit)];
 
-    for (i=0;i<iNumOcc;i++) {
-      if (aNumTrueLit[*pClause]==1) {
-        iScore+= aClausePen[*pClause];
-        iScoreWithoutPen++;
-      }
-      pClause++;
-    }
-
-
-   } else {
-
-   iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
-   iScoreWithoutPen = aVarScore[iVar];
-  }
-
-
-
-    /* keep track of which literal was the 'youngest' */
-
-    if (aVarLastChange[iVar] > aVarLastChange[iYoungestVar])
-      iYoungestVar = iVar;
-
-    /* keep track of the 'best' and the 'second best' variables,
-       breaking ties by selecting the younger variables */
-
-    if ((iScore < iBestScore) || ((iScore == iBestScore) && (aVarLastChange[iVar] < aVarLastChange[iBestVar]))) {
-      iSecondBestVar = iBestVar;
-      iBestVar = iVar;
-      iSecondBestScore = iBestScore;
-      iBestScore = iScore;
-    } else if ((iScore < iSecondBestScore) || ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestVar]))) {
-      iSecondBestVar = iVar;
-      iSecondBestScore = iScore;
-    }
-   } 
-  else{
-       iScore = 0;
-    iScoreWithoutPen = 0;
-    iVar = GetVarFromLit(*pLit);
-    /*The computation of score is necessary only when
-      the varscore trigger is not activated. Also,
-      we need to check whether clause penalty is
-      activated. If it is activated then, we need
-      to take account of the clause weight*/
-    if(!bPromisingList && !bPen){
-    iNumOcc = aNumLitOcc[*pLit];
-    pClause = pLitClause[*pLit];
-    for (i=0;i<iNumOcc;i++) {
-      if (aNumTrueLit[*pClause]==0) {
-        iScore--;
-        iScoreWithoutPen --;
-      }
-      pClause++;
-    }
-
-    iNumOcc = aNumLitOcc[GetNegatedLit(*pLit)];
-    pClause = pLitClause[GetNegatedLit(*pLit)];
-
-    for (i=0;i<iNumOcc;i++) {
-      if (aNumTrueLit[*pClause]==1) {
-        iScore++;
-        iScoreWithoutPen++;
-      }
-      pClause++;
-    }
-    }else if(!bPromisingList && bPen){
-    //Promising List is not used but Clause Penalty is activated
+        for (i = 0; i < iNumOcc; i++) {
+          if (aNumTrueLit[*pClause] == 1) {
+            iScore++;
+            iScoreWithoutPen++;
+          }
+          pClause++;
+        }
+      } else if (!bPromisingList && bPen) {
+        //Promising List is not used but Clause Penalty is activated
         iNumOcc = aNumLitOcc[*pLit];
         pClause = pLitClause[*pLit];
-        for (i=0;i<iNumOcc;i++) {
-         if (aNumTrueLit[*pClause]==0) {
-          iScore -= aClausePen[*pClause];
-          iScoreWithoutPen--;
-         }
-        pClause++;
+        for (i = 0; i < iNumOcc; i++) {
+          if (aNumTrueLit[*pClause] == 0) {
+            iScore -= aClausePen[*pClause];
+            iScoreWithoutPen--;
+          }
+          pClause++;
+        }
+
+        iNumOcc = aNumLitOcc[GetNegatedLit(*pLit)];
+        pClause = pLitClause[GetNegatedLit(*pLit)];
+
+        for (i = 0; i < iNumOcc; i++) {
+          if (aNumTrueLit[*pClause] == 1) {
+            iScore += aClausePen[*pClause];
+            iScoreWithoutPen++;
+          }
+          pClause++;
+        }
+
+
+      } else {
+
+        iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
+        iScoreWithoutPen = aVarScore[iVar];
       }
 
-    iNumOcc = aNumLitOcc[GetNegatedLit(*pLit)];
-    pClause = pLitClause[GetNegatedLit(*pLit)];
 
-    for (i=0;i<iNumOcc;i++) {
-      if (aNumTrueLit[*pClause]==1) {
-        iScore+= aClausePen[*pClause];
-        iScoreWithoutPen++;
+
+      /* keep track of which literal was the 'youngest' */
+
+      if (aVarLastChange[iVar] > aVarLastChange[iYoungestVar])
+        iYoungestVar = iVar;
+
+      /* keep track of the 'best' and the 'second best' variables,
+         breaking ties by selecting the younger variables */
+
+      if ((iScore < iBestScore) || ((iScore == iBestScore) && (aVarLastChange[iVar] < aVarLastChange[iBestVar]))) {
+        iSecondBestVar = iBestVar;
+        iBestVar = iVar;
+        iSecondBestScore = iBestScore;
+        iBestScore = iScore;
+      } else if ((iScore < iSecondBestScore) ||
+                 ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestVar]))) {
+        iSecondBestVar = iVar;
+        iSecondBestScore = iScore;
       }
-      pClause++;
     }
+    else {
+      iScore = 0;
+      iScoreWithoutPen = 0;
+      iVar = GetVarFromLit(*pLit);
+      /*The computation of score is necessary only when
+        the varscore trigger is not activated. Also,
+        we need to check whether clause penalty is
+        activated. If it is activated then, we need
+        to take account of the clause weight*/
+      if (!bPromisingList && !bPen) {
+        iNumOcc = aNumLitOcc[*pLit];
+        pClause = pLitClause[*pLit];
+        for (i = 0; i < iNumOcc; i++) {
+          if (aNumTrueLit[*pClause] == 0) {
+            iScore--;
+            iScoreWithoutPen--;
+          }
+          pClause++;
+        }
+
+        iNumOcc = aNumLitOcc[GetNegatedLit(*pLit)];
+        pClause = pLitClause[GetNegatedLit(*pLit)];
+
+        for (i = 0; i < iNumOcc; i++) {
+          if (aNumTrueLit[*pClause] == 1) {
+            iScore++;
+            iScoreWithoutPen++;
+          }
+          pClause++;
+        }
+      } else if (!bPromisingList && bPen) {
+        //Promising List is not used but Clause Penalty is activated
+        iNumOcc = aNumLitOcc[*pLit];
+        pClause = pLitClause[*pLit];
+        for (i = 0; i < iNumOcc; i++) {
+          if (aNumTrueLit[*pClause] == 0) {
+            iScore -= aClausePen[*pClause];
+            iScoreWithoutPen--;
+          }
+          pClause++;
+        }
+
+        iNumOcc = aNumLitOcc[GetNegatedLit(*pLit)];
+        pClause = pLitClause[GetNegatedLit(*pLit)];
+
+        for (i = 0; i < iNumOcc; i++) {
+          if (aNumTrueLit[*pClause] == 1) {
+            iScore += aClausePen[*pClause];
+            iScoreWithoutPen++;
+          }
+          pClause++;
+        }
 
 
-   } else {
+      } else {
 
-   iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
-   iScoreWithoutPen = aVarScore[iVar];
-  }
+        iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
+        iScoreWithoutPen = aVarScore[iVar];
+      }
 
 
 
-    /* keep track of which literal was the 'youngest' */
+      /* keep track of which literal was the 'youngest' */
 
-    if (aVarLastChange[iVar] > aVarLastChange[iYoungestVar])
-      iYoungestVar = iVar;
+      if (aVarLastChange[iVar] > aVarLastChange[iYoungestVar])
+        iYoungestVar = iVar;
 
-    /* keep track of the 'best' and the 'second best' variables,
-       breaking ties by selecting the younger variables */
- if((aVarLastChange[iVar] < iTabuCutoff)||(iScore ==0)){
- 
-    if ((iScore < iBestScore) || ((iScore == iBestScore) && (aVarLastChange[iVar] < aVarLastChange[iBestVar]))) {
-      iSecondBestVar = iBestVar;
-      iBestVar = iVar;
-      iSecondBestScore = iBestScore;
-      iBestScore = iScore;
-    } else if ((iScore < iSecondBestScore) || ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestVar]))) {
-      iSecondBestVar = iVar;
-      iSecondBestScore = iScore;
+      /* keep track of the 'best' and the 'second best' variables,
+         breaking ties by selecting the younger variables */
+      if ((aVarLastChange[iVar] < iTabuCutoff) || (iScore == 0)) {
+
+        if ((iScore < iBestScore) || ((iScore == iBestScore) && (aVarLastChange[iVar] < aVarLastChange[iBestVar]))) {
+          iSecondBestVar = iBestVar;
+          iBestVar = iVar;
+          iSecondBestScore = iBestScore;
+          iBestScore = iScore;
+        } else if ((iScore < iSecondBestScore) ||
+                   ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestVar]))) {
+          iSecondBestVar = iVar;
+          iSecondBestScore = iScore;
+        }
+
+      }
     }
-
-    }
-   }
     pLit++;
   }
-  
+
   iFlipCandidate = iBestVar;
 
   /* if the best is the youngest, select it */
@@ -343,9 +343,9 @@ void PickRNoveltyCore()
   if (iScoreMargin == 1) {
     iFlipCandidate = iSecondBestVar;
     return;
-  } 
+  }
 
-  if (RandomProb(((iNovNoise - 0x7FFFFFFF)<<1)))
+  if (RandomProb(((iNovNoise - 0x7FFFFFFF) << 1)))
     iFlipCandidate = iSecondBestVar;
 }
 

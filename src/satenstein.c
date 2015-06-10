@@ -30,9 +30,8 @@
 
 void PickSatenstein();
 void PickSatensteinW();
-void NoveltyProm();
-void NoveltyPromisingProm();
-void NoveltyPlusPlusProm();
+void NoveltyPromisingProm(BOOL trackLastChanged);
+void NoveltyProm(BOOL trackLastChanged);
 void CreateDecPromVarsW();
 void InitDecPromVarsW();
 void UpdateDecPromVarsW();
@@ -53,6 +52,8 @@ UINT32 iLeastRecentlyFlippedPromVar;
 
 void Smooth();
 void UpdateClauseWeight();
+
+UINT32 updateDecPromVarsNovelty(BOOL trackLastChanged);
 
 UINT32 iUpdateSchemePromList;
 UINT32 iAdaptiveNoiseScheme;
@@ -438,7 +439,7 @@ void PickSatenstein() {
   LITTYPE *pLit;
   double dRunTime;
   UINT32 iLastChange;
-  UINT32 iTabuCutoff;
+  UINT32 iTabuCutoff = 0; // TODO: remove dummy initialization that eliminates compiler warnings
   if (bTabu) {
     if (iStep > iTabuTenure) {
       iTabuCutoff = iStep - iTabuTenure;
@@ -913,25 +914,25 @@ void PickSatenstein() {
 
           break;
         case PICK_NOVELTY:
-          NoveltyProm();
+          NoveltyProm(FALSE);
           break;
 
         case PICK_NOVELTYPLUSPLUS:
-          NoveltyPlusPlusProm();
+          NoveltyProm(TRUE);
           if (iNumDecPromVars > 1) {
             if (RandomProb(iPromDp))
               iFlipCandidate = iLeastRecentlyFlippedPromVar;
           }
           break;
         case PICK_NOVELTYPLUS:
-          NoveltyProm();
+          NoveltyProm(FALSE);
           if (iNumDecPromVars > 1) {
             if (RandomProb(iPromWp))
               iFlipCandidate = aDecPromVarsList[RandomInt(iNumDecPromVars)];
           }
           break;
         case PICK_NOVELTYPLUSPLUSPRIME:
-          NoveltyProm();
+          NoveltyProm(FALSE);
           if (iNumDecPromVars > 1) {
             if (RandomProb(iPromDp)) {
               if (iNumDecPromVars == 2) {
@@ -954,7 +955,7 @@ void PickSatenstein() {
           }
           break;
         case PICK_NOVELTYPLUSP:
-          NoveltyPromisingProm();
+          NoveltyPromisingProm(FALSE);
           break;
 
         case PICK_DCCA:
@@ -1770,77 +1771,14 @@ BOOL CheckIfFreebie(UINT32 iLookVar) {
 }
 
 
-void NoveltyProm() {
-  int i, k, j;
-  SINT32 iScore;
-  SINT32 iBestScore = bPen ? iSumFalsePen : iNumFalse;
-  SINT32 iSecondBestScore = bPen ? iSumFalsePen : iNumFalse;
-  UINT32 iYoungestChange = 0;
-  UINT32 iYoungestVar;
-  UINT32 iVar;
-  i = -1;
-  k = 0;
-  for (j = 0; j < iNumDecPromVars; j++) {
-    iVar = aDecPromVarsList[j];
-    iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
-    if (iScore < 0) {
-      if (aVarLastChange[iVar] > iYoungestChange) {
-        iYoungestChange = aVarLastChange[iVar];
-        iYoungestVar = iVar;
-      }
+void NoveltyProm(BOOL trackLastChanged) {
+  UINT32 iYoungestVar = updateDecPromVarsNovelty(trackLastChanged);
 
-      if ((iScore < iBestScore) || ((iScore == iBestScore) && (aVarLastChange[iVar] < aVarLastChange[iBestPromVar]))) {
-        iSecondBestPromVar = iBestPromVar;
-        iBestPromVar = iVar;
-        iSecondBestScore = iBestScore;
-        iBestScore = iScore;
-      } else if ((iScore < iSecondBestScore) ||
-                 ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestPromVar]))) {
-        iSecondBestPromVar = iVar;
-        iSecondBestScore = iScore;
-      }
-
-
-    } else {
-      i = j;
-      aIsDecPromVar[iVar] = FALSE;
-      break;
-    }
-  }
-  j++;
-  if (i != -1) {
-    for (j = i + 1; j < iNumDecPromVars; j++) {
-      iVar = aDecPromVarsList[j];
-      iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
-      if (iScore < 0) {
-        aDecPromVarsListPos[iVar] = i;
-        aDecPromVarsList[i++] = iVar;
-        if (aVarLastChange[iVar] > iYoungestChange) {
-          iYoungestChange = aVarLastChange[iVar];
-          iYoungestVar = iVar;
-        }
-        if ((iScore < iBestScore) ||
-            ((iScore == iBestScore) && (aVarLastChange[iVar] < aVarLastChange[iBestPromVar]))) {
-          iSecondBestPromVar = iBestPromVar;
-          iBestPromVar = iVar;
-          iSecondBestScore = iBestScore;
-          iBestScore = iScore;
-        } else if ((iScore < iSecondBestScore) ||
-                   ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestPromVar]))) {
-          iSecondBestPromVar = iVar;
-          iSecondBestScore = iScore;
-        }
-
-      } else {
-        aIsDecPromVar[iVar] = FALSE;
-      }
-    }
-    iNumDecPromVars = i;
-  }
   if (iNumDecPromVars == 1) {
     iFlipCandidate = iBestPromVar;
     return;
   }
+
   if (iNumDecPromVars > 1) {
     iFlipCandidate = iBestPromVar;
     if (iBestPromVar == iYoungestVar) {
@@ -1851,22 +1789,17 @@ void NoveltyProm() {
 
 }
 
-
-/* This is pure redundancy. But the Novelty++ heuristic requires to keep track of the 
-   least recently flipped variable. And going over the list of promising decreasing variable 
-   will be purely annoying and unfair to this heuristic. */
-
-void NoveltyPlusPlusProm() {
-  int i, k, j;
+UINT32 updateDecPromVarsNovelty(BOOL trackLastChanged) {
+  int i, j;
   UINT32 iLastChange = iStep;
   SINT32 iScore;
   SINT32 iBestScore = bPen ? iSumFalsePen : iNumFalse;
   SINT32 iSecondBestScore = bPen ? iSumFalsePen : iNumFalse;
   UINT32 iYoungestChange = 0;
-  UINT32 iYoungestVar;
+  UINT32 iYoungestVar = 0;
   UINT32 iVar;
   i = -1;
-  k = 0;
+
   for (j = 0; j < iNumDecPromVars; j++) {
     iVar = aDecPromVarsList[j];
     iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
@@ -1874,11 +1807,13 @@ void NoveltyPlusPlusProm() {
       if (aVarLastChange[iVar] > iYoungestChange) {
         iYoungestChange = aVarLastChange[iVar];
         iYoungestVar = iVar;
-
       }
-      if (aVarLastChange[iVar] < iLastChange) {
-        iLastChange = aVarLastChange[iVar];
-        iLeastRecentlyFlippedPromVar = iVar;
+
+      if (trackLastChanged) {
+        if (aVarLastChange[iVar] < iLastChange) {
+          iLastChange = aVarLastChange[iVar];
+          iLeastRecentlyFlippedPromVar = iVar;
+        }
       }
 
       if ((iScore < iBestScore) || ((iScore == iBestScore) && (aVarLastChange[iVar] < aVarLastChange[iBestPromVar]))) {
@@ -1910,11 +1845,13 @@ void NoveltyPlusPlusProm() {
         if (aVarLastChange[iVar] > iYoungestChange) {
           iYoungestChange = aVarLastChange[iVar];
           iYoungestVar = iVar;
-
         }
-        if (aVarLastChange[iVar] < iLastChange) {
-          iLastChange = aVarLastChange[iVar];
-          iLeastRecentlyFlippedPromVar = iVar;
+
+        if (trackLastChanged) {
+          if (aVarLastChange[iVar] < iLastChange) {
+            iLastChange = aVarLastChange[iVar];
+            iLeastRecentlyFlippedPromVar = iVar;
+          }
         }
 
         if ((iScore < iBestScore) ||
@@ -1935,18 +1872,7 @@ void NoveltyPlusPlusProm() {
     }
     iNumDecPromVars = i;
   }
-  if (iNumDecPromVars == 1) {
-    iFlipCandidate = iBestPromVar;
-    return;
-  }
-  if (iNumDecPromVars > 1) {
-    iFlipCandidate = iBestPromVar;
-    if (iBestPromVar == iYoungestVar) {
-      if (RandomProb(iPromNovNoise))
-        iFlipCandidate = iSecondBestPromVar;
-    }
-  }
-
+  return iYoungestVar;
 }
 
 
@@ -2022,97 +1948,27 @@ void Smooth() {
   }
 }
 
-void NoveltyPromisingProm() {
-  int i, k, j;
-  SINT32 iScore;
-  SINT32 iBestScore = bPen ? iSumFalsePen : iNumFalse;
-  SINT32 iSecondBestScore = bPen ? iSumFalsePen : iNumFalse;
+void NoveltyPromisingProm(BOOL trackLastChanged) {
   SINT32 iSecondBestLookAheadScore, iBestLookAheadScore;
-  UINT32 iYoungestChange = 0;
-  UINT32 iYoungestVar;
-  UINT32 iVar;
-  i = -1;
-  k = 0;
-  for (j = 0; j < iNumDecPromVars; j++) {
-    iVar = aDecPromVarsList[j];
-    iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
-    if (iScore < 0) {
-      if (aVarLastChange[iVar] > iYoungestChange) {
-        iYoungestChange = aVarLastChange[iVar];
-        iYoungestVar = iVar;
-      }
+  UINT32 iYoungestVar = updateDecPromVarsNovelty(trackLastChanged);
 
-      if ((iScore < iBestScore) || ((iScore == iBestScore) && (aVarLastChange[iVar] < aVarLastChange[iBestPromVar]))) {
-        iSecondBestPromVar = iBestPromVar;
-        iBestPromVar = iVar;
-        iSecondBestScore = iBestScore;
-        iBestScore = iScore;
-      } else if ((iScore < iSecondBestScore) ||
-                 ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestPromVar]))) {
-        iSecondBestPromVar = iVar;
-        iSecondBestScore = iScore;
-      }
-
-
-    } else {
-      i = j;
-      aIsDecPromVar[iVar] = FALSE;
-      break;
-    }
-  }
-  j++;
-  if (i != -1) {
-    for (j = i + 1; j < iNumDecPromVars; j++) {
-      iVar = aDecPromVarsList[j];
-      iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
-      if (iScore < 0) {
-        aDecPromVarsListPos[iVar] = i;
-        aDecPromVarsList[i++] = iVar;
-        if (aVarLastChange[iVar] > iYoungestChange) {
-          iYoungestChange = aVarLastChange[iVar];
-          iYoungestVar = iVar;
-        }
-        if ((iScore < iBestScore) ||
-            ((iScore == iBestScore) && (aVarLastChange[iVar] < aVarLastChange[iBestPromVar]))) {
-          iSecondBestPromVar = iBestPromVar;
-          iBestPromVar = iVar;
-          iSecondBestScore = iBestScore;
-          iBestScore = iScore;
-        } else if ((iScore < iSecondBestScore) ||
-                   ((iScore == iSecondBestScore) && (aVarLastChange[iVar] < aVarLastChange[iSecondBestPromVar]))) {
-          iSecondBestPromVar = iVar;
-          iSecondBestScore = iScore;
-        }
-
-      } else {
-        aIsDecPromVar[iVar] = FALSE;
-      }
-    }
-    iNumDecPromVars = i;
-  }
   if (iNumDecPromVars == 1) {
     iFlipCandidate = iBestPromVar;
     return;
   }
+
   if (iNumDecPromVars > 1) {
-    /* choose the 'best' variable by default */
-
     iFlipCandidate = iBestPromVar;
-
-    /* If the best is the youngest, with probability (iNovNoise) select the 2nd best */
-
     if (iFlipCandidate == iYoungestVar) {
       if (RandomProb(iPromNovNoise)) {
         iFlipCandidate = iSecondBestPromVar;
         return;
       }
-    } else {
+    }
 
-      /* If the best is older than then 2nd best, just choose the best */
-
-      if (aVarLastChange[iSecondBestPromVar] >= aVarLastChange[iFlipCandidate]) {
-        return;
-      }
+    /* If the best is older than then 2nd best, just choose the best */
+    if (aVarLastChange[iSecondBestPromVar] >= aVarLastChange[iFlipCandidate]) {
+      return;
     }
 
     /* otherwise, determine the 'look ahead' score for the 2nd best variable */
@@ -2138,9 +1994,6 @@ void NoveltyPromisingProm() {
     if (iBestLookAheadScore >= iSecondBestLookAheadScore) {
       iFlipCandidate = iSecondBestPromVar;
     }
-
-  } else {
-    iFlipCandidate = 0;
   }
 
 }

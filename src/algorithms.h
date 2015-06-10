@@ -92,8 +92,8 @@ void AddNoveltyPlusPlusPrimePromisingTabu();
 void PickNoveltyPlusFC();
 void PickNoveltyPromisingFC();
 UINT32 SelectClause();
-SINT32 BestLookAheadScore();
-SINT32 BestLookAheadPenScore();
+SINT32 BestLookAheadScore(UINT32 iLookVar);
+SINT32 BestLookAheadPenScore(UINT32 iLookVar);
 
 extern PROBABILITY iNovNoise;
 extern PROBABILITY iDp;

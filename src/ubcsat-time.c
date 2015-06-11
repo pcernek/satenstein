@@ -21,6 +21,7 @@
 */
 
 #include "ubcsat.h"
+#include "ubcsat-time.h"
 
 /*  
     This file contains the code for timestamping.
@@ -76,7 +77,7 @@ double fCurrentTimeStamp;
   }
 
   void InitSeed() {
-  
+
     gettimeofday(&tv,&tzp);
     iSeed = (( tv.tv_sec & 0x000007FF ) * 1000000) + tv.tv_usec;
 

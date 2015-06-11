@@ -20,6 +20,9 @@
 
 */
 
+#ifndef UBCSAT_LIMITS_H
+#define UBCSAT_LIMITS_H
+
 #define DEFAULTHEAPSIZE 4194304
 #define MAXHEAPS 1024
 
@@ -49,3 +52,4 @@
 
 #define MAXDYNAMICPARMS 32
 
+#endif

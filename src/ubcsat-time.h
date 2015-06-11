@@ -20,6 +20,9 @@
 
 */
 
+#ifndef UBCSAT_TIME_H
+#define UBCSAT_TIME_H
+
 #ifdef WIN32
 #include <sys/timeb.h>
 #else
@@ -42,4 +45,4 @@ double RunTimeElapsed();
 extern double fTotalTime;
 extern double fRunTime;
 
-
+#endif

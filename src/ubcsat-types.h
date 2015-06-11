@@ -20,8 +20,14 @@
 
 */
 
+#ifndef UBCSAT_TYPES_H
+#define UBCSAT_TYPES_H
 
 #include <stdint.h>
+#include <stdio.h>
+
+#include "ubcsat-limits.h"
+
 #ifndef _WIN32
 #include <stdbool.h>
 #endif
@@ -313,3 +319,5 @@ typedef struct typeDYNAMICPARM {
   FLOAT fFactor;
 
 } DYNAMICPARM;
+
+#endif

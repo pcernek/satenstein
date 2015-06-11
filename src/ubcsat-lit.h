@@ -20,6 +20,10 @@
 
 */
 
+#ifndef UBCSAT_LIT_H
+#define UBCSAT_LIT_H
+
+
 typedef UINT32 LITTYPE;
 
 #define GetTrueLit(V) (((V) << 1) + 1 - aVarValue[V])
@@ -39,3 +43,4 @@ typedef UINT32 LITTYPE;
 
 #define SetLitFromFile(V) ((LITTYPE) (((V) < 0) ? (((-(V)) << 1) + 1) : ((V) << 1)))
 
+#endif

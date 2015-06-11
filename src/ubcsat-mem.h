@@ -20,6 +20,9 @@
 
 */
 
+#ifndef UBCSAT_MEM_H
+#define UBCSAT_MEM_H
+
 void *AllocateRAM( size_t size );
 void AdjustLastRAM( size_t size );
 void PrintMemUsage();
@@ -27,3 +30,5 @@ void SetString(char **sNew, const char *sSrc);
 void FreeRAM();
 
 extern UINT32 iNumHeap;
+
+#endif

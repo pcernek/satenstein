@@ -139,9 +139,17 @@ void UpdateConfigurationDecreasing(BOOL* confChangedList, UINT32* confDecreasing
  *  occurs in CSchangedList, or 0, which is reserved to indicate that
  *  variable does NOT occur in CSchangedList.
  */
-void UpdateCSchanged(UINT32 pClause) {
+void UpdateCSchanged(UINT32 toggledClause, UINT32 exceptVar) {
+  UINT32 litIndex;
 
-//  RemoveVarFromSet(iFlipCandidate, CSchangedList, CSchangedListPos, &numCSchanged);
+  // Set the clause states-based configuration of each variable in
+  //  this clause is to TRUE, with the exception of the given variable.
+  for (litIndex = 0; litIndex < aClauseLen[toggledClause]; litIndex++) {
+    UINT32 curVar = GetVar(toggledClause, litIndex);
+    if (curVar != exceptVar){
+      CSchangedList[curVar] = TRUE;
+    }
+  }
 
 }
 

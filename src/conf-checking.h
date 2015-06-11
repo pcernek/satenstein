@@ -49,7 +49,7 @@ void UpdateVarConfigurations();
 
 void UpdateSDvars();
 
-void UpdateCSchanged(UINT32 pClause);
+void UpdateCSchanged(UINT32 toggledClause, UINT32 exceptVar);
 void UpdateNVchanged(UINT32 flippedVar);
 
 void UpdateNVDvars();

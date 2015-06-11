@@ -4755,7 +4755,7 @@ void FlipTrackChangesFCL() {
       UpdateChange(iFlipCandidate);
 
       if (performClauseConfChecking) {
-        UpdateCSchanged(*pClause);
+        UpdateCSchanged(*pClause, iFlipCandidate);
       }
 
       // since a clause containing this variable just became false, flipping this variable again
@@ -4805,7 +4805,7 @@ void FlipTrackChangesFCL() {
     if (aNumTrueLit[*pClause] == 1) {
 
       if (performClauseConfChecking) {
-        UpdateCSchanged(*pClause);
+        UpdateCSchanged(*pClause, iFlipCandidate);
       }
 
       aFalseList[aFalseListPos[*pClause]] = aFalseList[--iNumFalse];

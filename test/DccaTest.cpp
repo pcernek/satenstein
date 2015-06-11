@@ -12,40 +12,44 @@ TEST_F(DccaTest, hello) {
   EXPECT_EQ("hello", "hello");
 }
 
-TEST_F(DccaTest, pickCSDvar) {
-  iNumCSDvars = _numCSDvars;
-  csdVarsList = _csdVarsList;
+TEST_F(DccaTest, PickCSDvar) {
+  numCSDvars = _numCSDvars;
+  CSDvarsList = _csdVarsList;
 
   PickDCCA();
 
   EXPECT_EQ(6, iFlipCandidate);
 }
 
-TEST_F(DccaTest, pickNVDvar) {
-  iNumCSDvars = 0;
-  csdVarsList = _csdVarsList;
+TEST_F(DccaTest, PickNVDvar) {
+  numCSDvars = 0;
+  CSDvarsList = _csdVarsList;
 
-  iNumNVDvars = _numNVDvars;
-  nvdVarsList = _nvdVarsList;
+  numNVDvars = _numNVDvars;
+  NVDvarsList = _nvdVarsList;
 
   PickDCCA();
 
   EXPECT_EQ(1, iFlipCandidate);
 }
 
-TEST_F(DccaTest, pickSDvar) {
-  iNumCSDvars = 0;
-  csdVarsList = _csdVarsList;
+TEST_F(DccaTest, PickSDvar) {
+  numCSDvars = 0;
+  CSDvarsList = _csdVarsList;
 
-  iNumNVDvars = 0;
-  nvdVarsList = _nvdVarsList;
+  numNVDvars = 0;
+  NVDvarsList = _nvdVarsList;
 
-  iNumSDvars = _numSDvars;
-  sdVarsList = _sdVarsList;
+  numSDvars = _numSDvars;
+  SDvarsList = _sdVarsList;
 
   PickDCCA();
 
   EXPECT_EQ(4, iFlipCandidate);
+}
+
+TEST_F(DccaTest, updateConfCheckVars) {
+
 }
 
 DccaTest::DccaTest() {

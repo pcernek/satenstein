@@ -3,50 +3,20 @@
 //
 
 #include "dcca.h"
+#include "conf-checking.h"
 
 void PickDCCA() {
 
-  pickCSDvar();
+  PickCSDvar();
 
   if (iFlipCandidate == 0) {
-    pickNVDvar();
+    PickNVDvar();
   }
 
   if (iFlipCandidate == 0) {
-    pickSDvar();
+    PickSDvar();
   }
 
 }
 
-void pickCSDvar() {
-  pickBestOldestVar(csdVarsList, iNumCSDvars);
-}
-
-void pickNVDvar() {
-  pickBestOldestVar(nvdVarsList, iNumNVDvars);
-}
-
-void pickSDvar() {
-  pickBestOldestVar(sdVarsList, iNumSDvars);
-}
-
-void pickBestOldestVar(UINT32* varList, UINT32 listSize) {
-  UINT32 iVar;
-  SINT32 maxScore = 0;
-  UINT32 bestVar = 0;
-  UINT32 i;
-
-  // Find the variable with the best score, breaking ties
-  //   in favor of the least recently-flipped variable
-  for (i = 0; i < listSize; i ++) {
-    iVar = varList[i];
-    if (aVarScore[iVar] < maxScore ||
-        (aVarScore[iVar] == maxScore && aVarLastChange[iVar] < aVarLastChange[bestVar]) )
-    {
-      maxScore = aVarScore[iVar];
-      bestVar = iVar;
-    }
-  }
-
-  iFlipCandidate = bestVar;
-}
+// TODO: Expand this file to include all DCCA functionality with appropriate calls to conf-checking.c functions

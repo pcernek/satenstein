@@ -27,6 +27,7 @@
 //#include "paws.c"
 #include "dcca.h"
 #include "satenstein-types.h"
+#include "conf-checking.h"
 
 void PickSatenstein();
 void PickSatensteinW();
@@ -415,7 +416,13 @@ void EnableDisableTrigger() {
    *  promising lists based on configuration.
    */
   if (bPromisingList && iDecStrategy == PICK_DCCA) {
+    performClauseConfChecking = TRUE;
+    performNeighborConfChecking = TRUE;
     iUpdateSchemePromList = UPDATE_DCCA;
+  }
+  else { // TODO: Make this more flexible so that clause and neighbor configuration checking can be run independently
+    performClauseConfChecking = FALSE;
+    performNeighborConfChecking = FALSE;
   }
 
 }

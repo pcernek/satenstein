@@ -20,6 +20,11 @@ UINT32 *SDvarsList;
 UINT32 numSDvars;
 UINT32 *SDvarsListPos;
 
+// TODO: Complete this function
+void InitDCCA() {
+  InitConfCheckingVars();
+}
+
 void PickDCCA() {
 
   PickCSDvar();

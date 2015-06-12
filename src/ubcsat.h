@@ -44,6 +44,7 @@
 #include "ubcsat-triggers.h"
 
 #include "algorithms.h"
+#include "components.h"
 #include "reports.h"
 
 #include "mylocal.h"

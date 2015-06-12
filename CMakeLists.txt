@@ -44,9 +44,10 @@ set(SOURCE_FILES
 
                     src/dcca.c
                     src/satenstein-types.h
+                    src/components.h
                     src/sparrow.c
                     src/conf-checking.c
-                    src/prom-lists.c
+                    src/prom-vars.c
 )
 
 include_directories( test )

@@ -17,7 +17,7 @@
 #include "ubcsat-triggers.h"
 #include "ubcsat-types.h"
 
-#include "prom-lists.h"
+#include "prom-vars.h"
 
 extern BOOL performClauseConfChecking;
 extern BOOL performNeighborConfChecking;

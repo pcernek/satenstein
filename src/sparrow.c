@@ -37,6 +37,9 @@ namespace ubcsat {
 */
 
 void PickSparrow();
+
+void PickSparrowProbDist();
+
 void ScaleSparrow();
 void SmoothSparrow();
 void FlipSparrow();
@@ -45,22 +48,15 @@ void SparrowSat2011Settings();
 
 void CreateSparrowPromVars();
 void InitSparrowPromVars();
-UINT32 *aSparrowPromVars;
-BOOL *aVarIsGNovCandVar;
-UINT32 iNumSparrowPromVars;
 
 void CreateSparrowScore();
 void InitSparrowScore();
-SINT32 *aSparrowScore;
 
 void CreateSparrowWeights();
 
-void PickSparrowProm();
-
-void PickSparrowProbDist();
-
 FLOAT *aSparrowWeights;
 
+// Sparrow params
 FLOAT fSparrowC1;
 UINT32 iSparrowC2;
 FLOAT fSparrowC3;
@@ -151,10 +147,10 @@ void PickSparrow() {
     return;
   }
 
-  // first, try the greedy approach
+  // first, try the greedy approach using promising variables
   // TODO: This should in principle be replaceable by an already-existing implementation
-  if (iNumSparrowPromVars > 0 ) {
-    PickSparrowProm();
+  if (iNumDecPromVars > 0 ) {
+    PickGNoveltyPlusProm();
   }
 
   if (iFlipCandidate != 0) {
@@ -201,7 +197,7 @@ void PickSparrowProbDist() {
 
     // note :: unlike in sparrow paper, negative score is "good"
 
-    iScoreAdjust = aSparrowScore[iVar];
+    iScoreAdjust = aVarScore[iVar];
 
     if (iScoreAdjust > 10) {
       iScoreAdjust = 10;
@@ -236,36 +232,6 @@ void PickSparrowProbDist() {
   }
 }
 
-void PickSparrowProm() {
-  UINT32 j;
-  UINT32 k;
-  UINT32 iVar;
-
-  iBestScore = 0;
-  j=0;
-  k=0;
-  while (j < iNumSparrowPromVars) {
-    iVar = aSparrowPromVars[k];
-    if (aSparrowScore[iVar] >= 0) {
-      iNumSparrowPromVars--;
-      aVarIsGNovCandVar[iVar] = 0;
-    } else {
-      if (aSparrowScore[iVar] < iBestScore) {
-        iFlipCandidate = iVar;
-        iBestScore = aSparrowScore[iVar];
-      } else {
-        if (aSparrowScore[iVar] == iBestScore) {
-          if (aVarLastChange[iVar] < aVarLastChange[iFlipCandidate]) {
-            iFlipCandidate = iVar;
-          }
-        }
-      }
-      aSparrowPromVars[j++]=aSparrowPromVars[k];
-    }
-    k++;
-  }
-}
-
 void SmoothSparrow() {
 
   UINT32 j;
@@ -286,10 +252,10 @@ void SmoothSparrow() {
       }
       if (aNumTrueLit[iClause]==1) {
         iVar = aCritSat[iClause];
-        aSparrowScore[iVar]--;
-        if ((!aVarIsGNovCandVar[iVar]) && (aSparrowScore[iVar] < 0 ) && (aVarLastChange[iVar] < iStep - 1)) {
-          aSparrowPromVars[iNumSparrowPromVars++] = iVar;
-          aVarIsGNovCandVar[iVar] = 1;
+        aVarScore[iVar]--;
+        if ((!aIsDecPromVar[iVar]) && (aVarScore[iVar] < 0 ) && (aVarLastChange[iVar] < iStep - 1)) {
+          aDecPromVarsList[iNumDecPromVars++] = iVar;
+          aIsDecPromVar[iVar] = 1;
         }
       }
     }
@@ -316,10 +282,10 @@ void ScaleSparrow() {
     pLit = pClauseLits[iClause];
     for (k=0;k<aClauseLen[iClause];k++) {
       iVar = GetVarFromLit(*pLit);
-      aSparrowScore[iVar]--;
-      if ((!aVarIsGNovCandVar[iVar]) && (aSparrowScore[iVar] < 0 ) && (aVarLastChange[iVar] < iStep - 1)) {
-        aSparrowPromVars[iNumSparrowPromVars++] = iVar;
-        aVarIsGNovCandVar[iVar] = 1;
+      aVarScore[iVar]--;
+      if ((!aIsDecPromVar[iVar]) && (aVarScore[iVar] < 0 ) && (aVarLastChange[iVar] < iStep - 1)) {
+        aDecPromVarsList[iNumDecPromVars++] = iVar;
+        aIsDecPromVar[iVar] = 1;
       }
       pLit++;
     }
@@ -346,10 +312,10 @@ void FlipSparrow() {
 
   pShareVar = pVarsShareClause[iFlipCandidate];
   for (j=0; j < aNumVarsShareClause[iFlipCandidate]; j++) {
-    if (aSparrowScore[*pShareVar] < 0) {
-      aVarIsGNovCandVar[*pShareVar] = 1;
+    if (aVarScore[*pShareVar] < 0) {
+      aIsDecPromVar[*pShareVar] = 1;
     } else {
-      aVarIsGNovCandVar[*pShareVar] = 0;
+      aIsDecPromVar[*pShareVar] = 0;
     }
     pShareVar++;
   }
@@ -368,12 +334,12 @@ void FlipSparrow() {
       aFalseList[iNumFalse] = *pClause;
       aFalseListPos[*pClause] = iNumFalse++;
 
-      aSparrowScore[iFlipCandidate] -= iPenalty;
+      aVarScore[iFlipCandidate] -= iPenalty;
 
       pLit = pClauseLits[*pClause];
       for (k=0;k<aClauseLen[*pClause];k++) {
         iVar = GetVarFromLit(*pLit);
-        aSparrowScore[iVar] -= iPenalty;
+        aVarScore[iVar] -= iPenalty;
 
         pLit++;
 
@@ -384,7 +350,7 @@ void FlipSparrow() {
       for (k=0;k<aClauseLen[*pClause];k++) {
         if (IsLitTrue(*pLit)) {
           iVar = GetVarFromLit(*pLit);
-          aSparrowScore[iVar] += iPenalty;
+          aVarScore[iVar] += iPenalty;
           aCritSat[*pClause] = iVar;
           break;
         }
@@ -406,26 +372,26 @@ void FlipSparrow() {
       pLit = pClauseLits[*pClause];
       for (k=0;k<aClauseLen[*pClause];k++) {
         iVar = GetVarFromLit(*pLit);
-        aSparrowScore[iVar] += iPenalty;
+        aVarScore[iVar] += iPenalty;
 
         pLit++;
 
       }
-      aSparrowScore[iFlipCandidate] += iPenalty;
+      aVarScore[iFlipCandidate] += iPenalty;
       aCritSat[*pClause] = iFlipCandidate;
     }
     if (aNumTrueLit[*pClause]==2) {
-      aSparrowScore[aCritSat[*pClause]] -= iPenalty;
+      aVarScore[aCritSat[*pClause]] -= iPenalty;
     }
     pClause++;
   }
 
   pShareVar = pVarsShareClause[iFlipCandidate];
   for (j=0; j < aNumVarsShareClause[iFlipCandidate]; j++) {
-    if (aSparrowScore[*pShareVar] < 0) {
-      if (!aVarIsGNovCandVar[*pShareVar]) {
-        aSparrowPromVars[iNumSparrowPromVars++] = *pShareVar;
-        aVarIsGNovCandVar[*pShareVar] = 1;
+    if (aVarScore[*pShareVar] < 0) {
+      if (!aIsDecPromVar[*pShareVar]) {
+        aDecPromVarsList[iNumDecPromVars++] = *pShareVar;
+        aIsDecPromVar[*pShareVar] = 1;
       }
     }
     pShareVar++;
@@ -433,22 +399,22 @@ void FlipSparrow() {
 }
 
 void CreateSparrowPromVars() {
-  aSparrowPromVars = (UINT32 *) AllocateRAM((iNumVars+1) * sizeof(UINT32));
-  aVarIsGNovCandVar = (BOOL *) AllocateRAM((iNumVars+1) * sizeof(BOOL));
+  aDecPromVarsList = (UINT32 *) AllocateRAM((iNumVars+1) * sizeof(UINT32));
+  aIsDecPromVar = (BOOL *) AllocateRAM((iNumVars+1) * sizeof(BOOL));
 }
 
 void InitSparrowPromVars() {
 
   UINT32 j;
 
-  iNumSparrowPromVars = 0;
+  iNumDecPromVars = 0;
 
   for (j=1;j<=iNumVars;j++) {
-    if (aSparrowScore[j] < 0) {
-      aSparrowPromVars[iNumSparrowPromVars++] = j;
-      aVarIsGNovCandVar[j] = 1;
+    if (aVarScore[j] < 0) {
+      aDecPromVarsList[iNumDecPromVars++] = j;
+      aIsDecPromVar[j] = 1;
     } else {
-      aVarIsGNovCandVar[j] = 0;
+      aIsDecPromVar[j] = 0;
     }
   }
 }
@@ -458,7 +424,7 @@ void CreateSparrowWeights() {
 }
 
 void CreateSparrowScore() {
-  aSparrowScore = (SINT32 *) AllocateRAM((iNumVars+1)*sizeof(UINT32));
+  aVarScore = (SINT32 *) AllocateRAM((iNumVars+1)*sizeof(UINT32));
   aCritSat = (UINT32 *) AllocateRAM(iNumClauses*sizeof(UINT32));
 }
 
@@ -470,20 +436,20 @@ void InitSparrowScore() {
   LITTYPE *pLit;
 
   for (j=1;j<=iNumVars;j++) {
-    aSparrowScore[j] = 0;
+    aVarScore[j] = 0;
   }
 
   for (j=0;j<iNumClauses;j++) {
     if (aNumTrueLit[j]==0) {
       for (k=0;k<aClauseLen[j];k++) {
-        aSparrowScore[GetVar(j,k)] -= aClausePenaltyINT[j];
+        aVarScore[GetVar(j,k)] -= aClausePenaltyINT[j];
       }
     } else if (aNumTrueLit[j]==1) {
       pLit = pClauseLits[j];
       for (k=0;k<aClauseLen[j];k++) {
         if IsLitTrue(*pLit) {
           iVar = GetVarFromLit(*pLit);
-          aSparrowScore[iVar] += aClausePenaltyINT[j];
+          aVarScore[iVar] += aClausePenaltyINT[j];
           aCritSat[j] = iVar;
           break;
         }

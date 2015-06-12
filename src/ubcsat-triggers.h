@@ -201,6 +201,23 @@ extern FLOAT *aChangeOldScoreW;
 extern UINT32 *aChangeLastStepW;
 
 
+/***** Trigger DecPromVars *****/
+void CreateDecPromVars();
+void InitDecPromVars();
+void UpdateDecPromVars();
+
+void CreateDecPromPenVars();
+void InitDecPromPenVars();
+void UpdateDecPromPenVars();
+BOOL bPen;
+
+UINT32 *aDecPromVarsList;
+UINT32 *aDecPromVarsListPos;
+BOOL *aIsDecPromVar;
+UINT32 iNumDecPromVars;
+
+bool isDecreasing(UINT32 var);
+void PickGNoveltyPlusProm();
 
 /***** Trigger BestScoreList *****/
 /*
@@ -650,4 +667,6 @@ extern UINT32 *aClausePen;
 extern BOOL bPen;
 extern UINT32 *aVarLastSatisfied;
 
+extern BOOL performClauseConfChecking;
+extern BOOL performNeighborConfChecking;
 #endif

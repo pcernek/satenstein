@@ -21,13 +21,8 @@
 */
 
 #include "ubcsat.h"
-//#include "novelty.c"
-//#include "rnovelty.c"
-//#include "walksat.c"
-//#include "paws.c"
-#include "dcca.h"
+
 #include "satenstein-types.h"
-#include "conf-checking.h"
 
 void PickSatenstein();
 void PickSatensteinW();
@@ -388,6 +383,10 @@ void EnableDisableTrigger() {
     else {
       iPs = 1717986918;
 
+    }
+
+    if (iHeuristic == H_PICK_SPARROWPROBDIST) {
+      ActivateTriggers("InitSparrow,CreateSparrowWeights");
     }
 
   }
@@ -965,8 +964,17 @@ void PickSatenstein() {
           NoveltyPromisingProm(FALSE);
           break;
 
+        case PICK_GNOVELTYPLUS:
+          PickGNoveltyPlusProm();
+          break;
+
         case PICK_DCCA:
           PickDCCA();
+          break;
+
+        default:
+          // TODO: Put a default algorithm here, or restructure code to remove switch cases
+          break;
 
       }
     }
@@ -985,7 +993,7 @@ void PickSatenstein() {
 
       switch (iHeuristic) {
 
-        case 1:
+        case H_PICK_NOVELTY:
           if (bTabu)
             PickNoveltyTabu();
           else
@@ -993,7 +1001,7 @@ void PickSatenstein() {
 
           break;
 
-        case 2:
+        case H_PICK_NOVELTYPLUS:
           if (bTabu)
             PickNoveltyPlusTabu();
           else
@@ -1001,7 +1009,7 @@ void PickSatenstein() {
 
           break;
 
-        case 3:
+        case H_PICK_NOVELTYPLUSPLUS:
           if (bTabu)
             PickNoveltyPlusPlusTabu();
           else
@@ -1009,14 +1017,14 @@ void PickSatenstein() {
 
           break;
 
-        case 4:
+        case H_PICK_NOVELTYPLUSPLUSPRIME:
           if (bTabu)
             PickNoveltyPlusPlusPrimeTabu();
           else
             PickNoveltyPlusPlusPrime();
           break;
 
-        case 5:
+        case H_PICK_RNOVELTY:
           if (bTabu)
             PickRNovelty();
           else
@@ -1024,7 +1032,7 @@ void PickSatenstein() {
 
           break;
 
-        case 6:
+        case H_PICK_RNOVELTYPLUS:
           if (bTabu)
             PickRNoveltyPlus();
           else
@@ -1032,7 +1040,7 @@ void PickSatenstein() {
           break;
 
 
-        case 7:
+        case H_PICK_VW1:
           if (bTabu)
             PickVW1Tabu();
           else
@@ -1040,7 +1048,7 @@ void PickSatenstein() {
 
           break;
 
-        case 8:
+        case H_PICK_VW2:
           if (bTabu)
             PickVW2Tabu();
           else {
@@ -1051,35 +1059,35 @@ void PickSatenstein() {
           }
           break;
 
-        case 9:
+        case H_PICK_WALKSAT:
           if (bTabu)
             PickWalkSatTabu();
           else
             PickWalkSatSKC();
           break;
 
-        case 10:
+        case H_PICK_NOVELTY_PROMISING:
           if (bTabu)
             PickNoveltyPromisingTabu();
           else
             PickNoveltyPromising();
           break;
 
-        case 11:
+        case H_PICK_NOVELTYPLUS_PROMISING:
           if (bTabu)
             PickNoveltyPlusPromisingTabu();
           else
             PickNoveltyPlusPromising();
           break;
 
-        case 12:
+        case H_PICK_NOVELTYPLUSPLUS_PROMISING:
           if (bTabu)
             PickNoveltyPlusPlusPromisingTabu();
           else
             PickNoveltyPlusPlusPromising();
           break;
 
-        case 13:
+        case H_PICK_NOVELTYPLUSPLUSPRIME_PROMISING:
           if (bTabu)
             PickNoveltyPlusPlusPrimePromisingTabu();
           else
@@ -1087,14 +1095,15 @@ void PickSatenstein() {
 
           break;
 
-        case 14:
+        case H_PICK_NOVELTYPLUSFC:
           PickNoveltyPlusFC();
           break;
 
-        case 15:
+        case H_PICK_NOVELTYPLUSPROMISINGFC:
           PickNoveltyPlusPromisingFC();
           break;
-        case 16:
+
+        case H_PICK_RANDOMPROB:
           if (RandomProb(iDp)) {
             if (iNumFalse) {
               iClause = SelectClause();
@@ -1129,14 +1138,17 @@ void PickSatenstein() {
 
           break;
 
-        case 17:
+        case H_PICK_NOVELTYSATTIME:
           PickNoveltySattime();
           break;
 
-        case 18:
+        case H_PICK_NOVELTYPLUSSATTIME:
           PickNoveltyPlusSattime();
           break;
 
+        case H_PICK_SPARROWPROBDIST:
+          PickSparrowProbDist();
+          break;
       }
     }
   }

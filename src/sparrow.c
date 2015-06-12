@@ -54,6 +54,11 @@ void InitSparrowScore();
 SINT32 *aSparrowScore;
 
 void CreateSparrowWeights();
+
+void PickSparrowProm();
+
+void PickSparrowProbDist();
+
 FLOAT *aSparrowWeights;
 
 FLOAT fSparrowC1;
@@ -106,6 +111,7 @@ void AddSparrow() {
   CreateTrigger("SparrowSat2011Settings",PostRead,SparrowSat2011Settings,"","");
 }
 
+// TODO: Expose these parameters in SATenstein
 void SparrowSat2011Settings() {
   // These settings provided by Adrian Balint for the SAT 2011 competition
   if (iMaxClauseLen < 4) {
@@ -139,6 +145,35 @@ void InitSparrow() {
 
 void PickSparrow() {
 
+  iFlipCandidate = 0;
+
+  if (iNumFalse==0) {
+    return;
+  }
+
+  // first, try the greedy approach
+  // TODO: This should in principle be replaceable by an already-existing implementation
+  if (iNumSparrowPromVars > 0 ) {
+    PickSparrowProm();
+  }
+
+  if (iFlipCandidate != 0) {
+    return;
+  }
+
+  // if the greedy approach fails, then try choosing according to Sparrow's
+  //  probability distribution method
+  PickSparrowProbDist();
+
+  // with a parametrized probability, perform either smoothing or scaling
+  if (RandomProb(iPs)) {
+    SmoothSparrow();
+  } else {
+    ScaleSparrow();
+  }
+}
+
+void PickSparrowProbDist() {
   UINT32 iClause;
   UINT32 iClauseLen;
   UINT32 iVar;
@@ -153,43 +188,9 @@ void PickSparrow() {
   FLOAT fScoreSum;
   FLOAT fScorePos;
 
-  iFlipCandidate = 0;
-
-  if (iNumFalse==0) {
-    return;
-  }
-
-  if (iNumSparrowPromVars > 0 ) {
-    iBestScore = 0;
-    j=0;
-    k=0;
-    while (j < iNumSparrowPromVars) {
-      iVar = aSparrowPromVars[k];
-      if (aSparrowScore[iVar] >= 0) {
-        iNumSparrowPromVars--;
-        aVarIsGNovCandVar[iVar] = 0;
-      } else {
-        if (aSparrowScore[iVar] < iBestScore) {
-          iFlipCandidate = iVar;
-          iBestScore = aSparrowScore[iVar];
-        } else {
-          if (aSparrowScore[iVar] == iBestScore) {
-            if (aVarLastChange[iVar] < aVarLastChange[iFlipCandidate]) {
-              iFlipCandidate = iVar;
-            }
-          }
-        }
-        aSparrowPromVars[j++]=aSparrowPromVars[k];
-      }
-      k++;
-    }
-  }
-  if (iFlipCandidate != 0) {
-    return;
-  }
-
   fScoreSum = 0.0;
 
+  // pick a false clause at random
   iClause = aFalseList[RandomInt(iNumFalse)];
   iClauseLen = aClauseLen[iClause];
 
@@ -233,11 +234,35 @@ void PickSparrow() {
       break;
     }
   }
+}
 
-  if (RandomProb(iPs)) {
-    SmoothSparrow();
-  } else {
-    ScaleSparrow();
+void PickSparrowProm() {
+  UINT32 j;
+  UINT32 k;
+  UINT32 iVar;
+
+  iBestScore = 0;
+  j=0;
+  k=0;
+  while (j < iNumSparrowPromVars) {
+    iVar = aSparrowPromVars[k];
+    if (aSparrowScore[iVar] >= 0) {
+      iNumSparrowPromVars--;
+      aVarIsGNovCandVar[iVar] = 0;
+    } else {
+      if (aSparrowScore[iVar] < iBestScore) {
+        iFlipCandidate = iVar;
+        iBestScore = aSparrowScore[iVar];
+      } else {
+        if (aSparrowScore[iVar] == iBestScore) {
+          if (aVarLastChange[iVar] < aVarLastChange[iFlipCandidate]) {
+            iFlipCandidate = iVar;
+          }
+        }
+      }
+      aSparrowPromVars[j++]=aSparrowPromVars[k];
+    }
+    k++;
   }
 }
 

@@ -20,6 +20,12 @@
 
 */
 
+#include "ubcsat.h"
+
+
+#include "dcca.h"
+#include "sparrow.h"
+
 void AddAlgorithms();
 
 /* gsat.c */

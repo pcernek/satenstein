@@ -20,6 +20,11 @@
 
 */
 
+#ifndef UBCSAT_GLOBALS_H
+#define UBCSAT_GLOBALS_H
+
+#include "ubcsat-types.h"
+
 #ifdef __cplusplus
 namespace ubcsat {
 #endif
@@ -319,4 +324,6 @@ BOOL IsLocalMinimum(BOOL bUseWeighted);
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif

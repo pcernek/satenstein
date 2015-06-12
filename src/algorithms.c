@@ -20,7 +20,7 @@
 
 */
 
-#include "ubcsat.h"
+#include "algorithms.h"
 
 void AddAlgorithms() {
 

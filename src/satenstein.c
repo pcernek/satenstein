@@ -46,10 +46,26 @@ UINT32 iBestPromVar;
 UINT32 iSecondBestPromVar;
 UINT32 iLeastRecentlyFlippedPromVar;
 
+UINT32 iTabuCutoff;
+
 void Smooth();
 void UpdateClauseWeight();
 
 UINT32 updateDecPromVarsNovelty(BOOL trackLastChanged);
+
+void PerformHeuristic();
+
+void PerformPickPromisingVar();
+
+void PerformRandomWalk();
+
+void PerformScoringMeasureAllVars();
+
+void PerformScoringMeasureVarsInFalseClauses();
+
+void PerformScoringMeasure();
+
+void PerformSmoothing();
 
 UINT32 iUpdateSchemePromList;
 UINT32 iAdaptiveNoiseScheme;
@@ -69,11 +85,8 @@ PROBABILITY iRFp;
 
 PROBABILITY iPromNovNoise;
 BOOL bPerformNovelty;
-BOOL bNoveltyVariant;
 UINT32 *aDecPromVarsListW;
-UINT32 *aDecPromVarsListPosW;
 UINT32 iNumDecPromVarsW;
-BOOL *aIsDecPromVarW;
 
 PROBABILITY iPromDp;
 PROBABILITY iPromWp;
@@ -99,7 +112,7 @@ void AddSatenstein() {
   CopyParameters(pCurAlg, "vw2", "", FALSE, 4);
 
 
-  CreateTrigger("EnableDisableTrigger", PreStart, EnableDisableTrigger, "", "");
+  CreateTrigger("EnableDisableTrigger", PostParameters, EnableDisableTrigger, "", "");
   AddParmProbability(&pCurAlg->parmList, "-dp", "diversification probability [default %s]",
                      "with probability dp, select the least recently flipped~variable from an unsat clause", "", &iDp,
                      0.05);
@@ -190,6 +203,11 @@ void AddSatenstein() {
   AddParmProbability(&pCurAlg->parmList, "-pflat", "flat move probabilty [default %s]",
                      "when a local minimum is encountered,~take a 'flat' (sideways) step with probability PR", "",
                      &iPAWSFlatMove, 0.15);
+
+  /******* Sparrow parameters *********/
+  AddParmFloat(&pCurAlg->parmList,"-sparrowc1","sparrow score adjustment parameter [default %s]","adjusts the importance of the score","",&fSparrowC1,2.0);
+  AddParmUInt(&pCurAlg->parmList,"-sparrowc2","sparrow age polynomial parameter [default %s]","adjusts the influence of the age","",&iSparrowC2,4);
+  AddParmFloat(&pCurAlg->parmList,"-sparrowc3","sparrow age threshold parameter [default %s]","threshold for age calculation","",&fSparrowC3,100000.0);
 
   CreateTrigger("PickSatenstein", ChooseCandidate, PickSatenstein, "", "");
 
@@ -343,7 +361,12 @@ void EnableDisableTrigger() {
   }
   else {
 
-    DeActivateTriggers("Flip+MBPINT+FCL+VIF,PenClauseList,PostFlipPAWS,Flip+MBPFL+FCL+VIF,PostFlipSAPS,PostFlipRSAPS");
+    /*
+     * TODO: Trigger "PenClauseList" has been temporarily removed from the list of triggers to deactivate, below,
+     *        so that Sparrow may work. Fix the logic of handling Sparrow smoothing so that this changed can be
+     *        reverted.
+     */
+    DeActivateTriggers("Flip+MBPINT+FCL+VIF,PostFlipPAWS,Flip+MBPFL+FCL+VIF,PostFlipSAPS,PostFlipRSAPS");
 
     if ((!bSingleClause && !bPen && !bPromisingList) || ((bPerformRandomWalk) && (iRandomStep == 2))) {
       if (((bPerformRandomWalk) && (iRandomStep == 2)) || (bVarInFalse)) {
@@ -377,22 +400,14 @@ void EnableDisableTrigger() {
 
     if (bNotThreeSat == TRUE) {
       iPs = -1;
-
-
     }
     else {
       iPs = 1717986918;
-
-    }
-
-    if (iHeuristic == H_PICK_SPARROWPROBDIST) {
-      ActivateTriggers("InitSparrow,CreateSparrowWeights");
     }
 
   }
 
-
-/*If Promising list is not true 
+/*If Promising list is not true
   and heuristic is 10,11,12,13 and 15
   then updatescheme is hard coded back to 14 */
 
@@ -424,28 +439,24 @@ void EnableDisableTrigger() {
     performNeighborConfChecking = FALSE;
   }
 
+  if (iHeuristic == H_PICK_SPARROWPROBDIST) {
+    ActivateTriggers("InitSparrow,CreateSparrowWeights,PenClauseList,FlipSparrow");
+    DeActivateTriggers("UpdateDecPromVars,Flip+TrackChanges+FCL,SparrowPromVars");
+    // TODO: finish handling sparrow probability distribution
+  }
+
+  if (bPromisingList && iDecStrategy == PICK_GNOVELTYPLUS) {
+    ActivateTriggers("UpdateVarLastChange");
+    DeActivateTriggers("UpdateDecPromVars");
+  }
+
 }
 
 
 void PickSatenstein() {
 
-  UINT32 j, i, k;
-  UINT32 iVar;
-  UINT32 iClause;
-  UINT32 iClauseLen;
-  UINT32 iBestVarFlipCount;
-  FLOAT fVWWeight;
-  FLOAT fBestVWWeight;
-  SINT32 iScore = 0;
-  SINT32 iBestScore;
-  BOOL FreebieExist;
-  BOOL CheckFreebie;
-  BOOL bTestBool;
-  LITTYPE litPick;
-  LITTYPE *pLit;
-  double dRunTime;
-  UINT32 iLastChange;
-  UINT32 iTabuCutoff = 0; // TODO: remove dummy initialization that eliminates compiler warnings
+  iTabuCutoff = 0;
+
   if (bTabu) {
     if (iStep > iTabuTenure) {
       iTabuCutoff = iStep - iTabuTenure;
@@ -457,527 +468,23 @@ void PickSatenstein() {
     }
   }
 
-//  printf("%f ",fSumClauseVarFlipCount);
   bPerformNovelty = TRUE;
+
   if (bPerformRandomWalk) {
-
-    switch (iRandomStep) {
-
-      case 1:
-        if (RandomProb(iRWp)) {
-          if (iNumFalse) {
-            iClause = SelectClause();
-            iClauseLen = aClauseLen[iClause];
-            litPick = (pClauseLits[iClause][RandomInt(iClauseLen)]);
-            iFlipCandidate = GetVarFromLit(litPick);
-            bPerformNovelty = FALSE;
-            return;
-          } else {
-            iFlipCandidate = 0;
-          }
-        }
-
-        break;
-
-      case 2:
-        if (RandomProb(iRWpWalk)) {
-          if (iNumVarsInFalseList) {
-            iFlipCandidate = aVarInFalseList[RandomInt(iNumVarsInFalseList)];
-            bPerformNovelty = FALSE;
-            return;
-          } else {
-            iFlipCandidate = 0;
-          }
-
-
-        }
-        break;
-
-      case 3:
-        if (RandomProb(iRDp)) {
-          if (iNumFalse) {
-
-            iClause = SelectClause();
-            iClauseLen = aClauseLen[iClause];
-
-            pLit = pClauseLits[iClause];
-
-            iFlipCandidate = GetVarFromLit(*pLit);
-
-            pLit++;
-
-            for (j = 1; j < iClauseLen; j++) {
-              iVar = GetVarFromLit(*pLit);
-
-              if (aVarLastChange[iVar] < aVarLastChange[iFlipCandidate]) {
-                iFlipCandidate = iVar;
-              }
-              pLit++;
-            }
-            bPerformNovelty = FALSE;
-            return;
-          } else {
-            iFlipCandidate = 0;
-          }
-        }
-
-        break;
-
-      case 4:
-        if (RandomProb(iRFp)) {
-          if (iNumFalse) {
-            iClause = SelectClause();
-            iClauseLen = aClauseLen[iClause];
-
-            pLit = pClauseLits[iClause];
-
-            iFlipCandidate = GetVarFromLit(*pLit);
-
-            pLit++;
-
-            for (j = 1; j < iClauseLen; j++) {
-              iVar = GetVarFromLit(*pLit);
-
-              if (aFlipCounts[iVar] < aFlipCounts[iFlipCandidate]) {
-                iFlipCandidate = iVar;
-              }
-
-              pLit++;
-            }
-          } else {
-            iFlipCandidate = 0;
-          }
-          bPerformNovelty = FALSE;
-          return;
-        }
-        break;
-
-      case 5:
-        if (RandomProb(iRFp)) {
-          if (iNumFalse) {
-            iClause = SelectClause();
-            iClauseLen = aClauseLen[iClause];
-
-            pLit = pClauseLits[iClause];
-
-            iFlipCandidate = GetVarFromLit(*pLit);
-
-            pLit++;
-
-            for (j = 1; j < iClauseLen; j++) {
-              iVar = GetVarFromLit(*pLit);
-
-              if (aVW2Weights[iVar] < aVW2Weights[iFlipCandidate]) {
-                iFlipCandidate = iVar;
-              }
-
-              pLit++;
-            }
-          } else {
-            iFlipCandidate = 0;
-          }
-          bPerformNovelty = FALSE;
-          return;
-        }
-        break;
-
-    }
-
+    PerformRandomWalk();
   }
 
+  if (iFlipCandidate != 0) {
+    return;
+  }
 
   if (bPromisingList) {
     bPerformNovelty = TRUE;
+
     if (iNumDecPromVars > 0) {
-
-      switch (iDecStrategy) {
-
-        case PICK_FREEBIE:/* Checks for freebie (breakcount 0) variables in the
-                    promising decreasing variable stack. If there are 
-                    freebies then selects among them according to the
-                    tie-breaking scheme. If there is not any free-bie
-                    randomly picks one variable from the promising 
-                    decreasing variable list. */
-
-          iNumCandidates = 0;
-          FreebieExist = FALSE;
-          iBestScore = iNumFalse;  //CWBIG;    //BIG;
-          iLastChange = iStep;
-          i = -1;
-          k = 0;
-          for (j = 0; j < iNumDecPromVars; j++) {
-            iVar = aDecPromVarsList[j];
-            iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
-            if (iScore < 0) {
-              if (CheckIfFreebie(iVar)) {
-                if (iNumCandidates == 0) {
-                  FreebieExist = TRUE;
-                }
-                aCandidateList[iNumCandidates++] = iVar;
-              }
-            } else {
-              i = j;
-              aIsDecPromVar[iVar] = FALSE;
-              break;
-            }
-          }
-          j++;
-          if (i != -1) {
-            for (j = i + 1; j < iNumDecPromVars; j++) {
-              iVar = aDecPromVarsList[j];
-              iScore = aVarScore[iVar];
-              if (iScore < 0) {
-                aDecPromVarsListPos[iVar] = i;
-                aDecPromVarsList[i++] = iVar;
-                if (CheckIfFreebie(iVar)) {
-                  if (iNumCandidates == 0) {
-                    FreebieExist = TRUE;
-                  }
-                  aCandidateList[iNumCandidates++] = iVar;
-                }
-              } else {
-                aIsDecPromVar[iVar] = FALSE;
-              }
-            }
-            iNumDecPromVars = i;
-          }
-
-          if (FreebieExist == TRUE) {
-            if (iNumCandidates > 1)
-              iFlipCandidate = TieBreaking();
-            else
-              iFlipCandidate = aCandidateList[0];
-          } else {
-            if (iNumDecPromVars > 0) {
-              if (iNumDecPromVars == 1)
-                iFlipCandidate = aDecPromVarsList[0];
-              else
-                iFlipCandidate = aDecPromVarsList[RandomInt(iNumDecPromVars)];
-            }
-          }
-          break;
-
-        case PICK_BESTSCORE: /* Flip the variable with highest score
-                    breaking ties in favor of the least 
-                    recently flipped variable. This strategy
-                    is taken by G2WSAT, GNovelty+, adaptG2WSAT
-                    preliminary version. */
-
-          iBestScore = iNumFalse;  //CWBIG;    //BIG;
-          iLastChange = iStep;
-          i = -1;
-          k = 0;
-          for (j = 0; j < iNumDecPromVars; j++) {
-            iVar = aDecPromVarsList[j];
-            if (!bPen)
-              iScore = aVarScore[iVar];
-            else
-              iScore = aVarPenScore[iVar];
-            if (iScore < 0) {
-              if (iScore < iBestScore) {
-                iBestScore = iScore;
-                iLastChange = aVarLastChange[iVar];
-                iFlipCandidate = iVar;
-              } else if (iScore == iBestScore) {
-                if (aVarLastChange[iVar] < iLastChange) {
-                  iLastChange = aVarLastChange[iVar];
-                  iFlipCandidate = iVar;
-                }
-              }
-            } else {
-              i = j;
-              aIsDecPromVar[iVar] = FALSE;
-              break;
-            }
-          }
-          j++;
-          if (i != -1) {
-            for (j = i + 1; j < iNumDecPromVars; j++) {
-              iVar = aDecPromVarsList[j];
-              if (!bPen)
-                iScore = aVarScore[iVar];
-              else
-                iScore = aVarPenScore[iVar];
-              if (iScore < 0) {
-                aDecPromVarsListPos[iVar] = i;
-                aDecPromVarsList[i++] = iVar;
-                if (iScore < iBestScore) {
-                  iBestScore = iScore;
-                  iLastChange = aVarLastChange[iVar];
-                  iFlipCandidate = iVar;
-                } else if (iScore == iBestScore) {
-                  if (aVarLastChange[iVar] < iLastChange) {
-                    iLastChange = aVarLastChange[iVar];
-                    iFlipCandidate = iVar;
-                  }
-                }
-              } else {
-                aIsDecPromVar[iVar] = FALSE;
-              }
-            }
-            iNumDecPromVars = i;
-          }
-          break;
-
-        case PICK_OLDEST: /* Selects the least recently flipped variable
-                    from the promising decreasing variable list.
-                    This strategy is present in adaptG2WSAT0, 
-                    adaptG2WSAT+ and adaptG2WSAT+p. */
-          iBestScore = iNumFalse;  //CWBIG;    //BIG;
-          iLastChange = iStep;
-          i = -1;
-          k = 0;
-          for (j = 0; j < iNumDecPromVars; j++) {
-            iVar = aDecPromVarsList[j];
-            iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
-            if (iScore < 0) {
-              if (aVarLastChange[iVar] < iLastChange) {
-                iLastChange = aVarLastChange[iVar];
-                iFlipCandidate = iVar;
-              }
-            }
-            else {
-              i = j;
-              aIsDecPromVar[iVar] = FALSE;
-              break;
-            }
-          }
-          j++;
-          if (i != -1) {
-            for (j = i + 1; j < iNumDecPromVars; j++) {
-              iVar = aDecPromVarsList[j];
-              iScore = aVarScore[iVar];
-              if (iScore < 0) {
-                aDecPromVarsListPos[iVar] = i;
-                aDecPromVarsList[i++] = iVar;
-                if (aVarLastChange[iVar] < iLastChange) {
-                  iLastChange = aVarLastChange[iVar];
-                  iFlipCandidate = iVar;
-                }
-              }
-              else {
-                aIsDecPromVar[iVar] = FALSE;
-              }
-            }
-            iNumDecPromVars = i;
-          }
-
-          break;
-
-        case PICK_BEST_VW1:  /*Pick the variable that has been flipped least number of times
-                    Any remaining ties are broken according to the tie-breaking
-                    policy. */
-          iNumCandidates = 0;
-          fBestVWWeight = (FLOAT) iStep;
-          iLastChange = iStep;
-          i = -1;
-          k = 0;
-          for (j = 0; j < iNumDecPromVars; j++) {
-            iVar = aDecPromVarsList[j];
-            iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
-            if (iScore < 0) {
-              if (aVW2Weights[iVar] <= fBestVWWeight) {
-                if (aVW2Weights[iVar] < fBestVWWeight) {
-                  iNumCandidates = 0;
-                  fBestVWWeight = aVW2Weights[iVar];
-                }
-                aCandidateList[iNumCandidates++] = iVar;
-              }
-            }
-            else {
-              i = j;
-              aIsDecPromVar[iVar] = FALSE;
-              break;
-            }
-          }
-          j++;
-          if (i != -1) {
-            for (j = i + 1; j < iNumDecPromVars; j++) {
-              iVar = aDecPromVarsList[j];
-              iScore = aVarScore[iVar];
-              if (iScore < 0) {
-                aDecPromVarsListPos[iVar] = i;
-                aDecPromVarsList[i++] = iVar;
-                if (aVW2Weights[iVar] <= fBestVWWeight) {
-                  if (aVW2Weights[iVar] < fBestVWWeight) {
-                    iNumCandidates = 0;
-                    fBestVWWeight = aVW2Weights[iVar];
-                  }
-                  aCandidateList[iNumCandidates++] = iVar;
-                }
-
-              }
-              else {
-                aIsDecPromVar[iVar] = FALSE;
-              }
-            }
-            iNumDecPromVars = i;
-          }
-
-
-          if (iNumCandidates > 1)
-            iFlipCandidate = TieBreaking();
-          else
-            iFlipCandidate = aCandidateList[0];
-
-          break;
-        case PICK_BEST_VW2:  /*Pick the variable that has been flipped least number of times
-                    Any remaining ties are broken according to the tie-breaking
-                    policy. */
-          iNumCandidates = 0;
-          iBestVarFlipCount = iStep;
-          iLastChange = iStep;
-          i = -1;
-          k = 0;
-          for (j = 0; j < iNumDecPromVars; j++) {
-            iVar = aDecPromVarsList[j];
-            iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
-            if (iScore < 0) {
-              if (aFlipCounts[iVar] <= iBestVarFlipCount) {
-                if (aFlipCounts[iVar] < iBestVarFlipCount) {
-                  iNumCandidates = 0;
-                  iBestVarFlipCount = aFlipCounts[iVar];
-                }
-                aCandidateList[iNumCandidates++] = iVar;
-              }
-            }
-            else {
-              i = j;
-              aIsDecPromVar[iVar] = FALSE;
-              break;
-            }
-          }
-          j++;
-          if (i != -1) {
-            for (j = i + 1; j < iNumDecPromVars; j++) {
-              iVar = aDecPromVarsList[j];
-              iScore = aVarScore[iVar];
-              if (iScore < 0) {
-                aDecPromVarsListPos[iVar] = i;
-                aDecPromVarsList[i++] = iVar;
-                if (aFlipCounts[iVar] <= iBestVarFlipCount) {
-                  if (aFlipCounts[iVar] < iBestVarFlipCount) {
-                    iNumCandidates = 0;
-                    iBestVarFlipCount = aFlipCounts[iVar];
-                  }
-                  aCandidateList[iNumCandidates++] = iVar;
-                }
-              }
-              else {
-                aIsDecPromVar[iVar] = FALSE;
-              }
-            }
-            iNumDecPromVars = i;
-          }
-
-
-          if (iNumCandidates > 1)
-            iFlipCandidate = TieBreaking();
-          else
-            iFlipCandidate = aCandidateList[0];
-
-          break;
-
-
-        case PICK_RANDOM:  /* Select randomly a variable from the
-                    promising decreasing variable. */
-          iBestScore = iNumFalse;  //CWBIG;    //BIG;
-          iLastChange = iStep;
-          i = -1;
-          k = 0;
-          for (j = 0; j < iNumDecPromVars; j++) {
-            iVar = aDecPromVarsList[j];
-            iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
-            if (iScore < 0) {
-            } else {
-              i = j;
-              aIsDecPromVar[iVar] = FALSE;
-              break;
-            }
-          }
-          j++;
-          if (i != -1) {
-            for (j = i + 1; j < iNumDecPromVars; j++) {
-              iVar = aDecPromVarsList[j];
-              iScore = aVarScore[iVar];
-              if (iScore < 0) {
-                aDecPromVarsListPos[iVar] = i;
-                aDecPromVarsList[i++] = iVar;
-              } else {
-                aIsDecPromVar[iVar] = FALSE;
-              }
-            }
-            iNumDecPromVars = i;
-          }
-
-          if (iNumDecPromVars > 0) {
-            if (iNumDecPromVars == 1)
-              iFlipCandidate = aDecPromVarsList[0];
-            else
-              iFlipCandidate = aDecPromVarsList[RandomInt(iNumDecPromVars)];
-          }
-
-
-          break;
-        case PICK_NOVELTY:
-          NoveltyProm(FALSE);
-          break;
-
-        case PICK_NOVELTYPLUSPLUS:
-          NoveltyProm(TRUE);
-          if (iNumDecPromVars > 1) {
-            if (RandomProb(iPromDp))
-              iFlipCandidate = iLeastRecentlyFlippedPromVar;
-          }
-          break;
-        case PICK_NOVELTYPLUS:
-          NoveltyProm(FALSE);
-          if (iNumDecPromVars > 1) {
-            if (RandomProb(iPromWp))
-              iFlipCandidate = aDecPromVarsList[RandomInt(iNumDecPromVars)];
-          }
-          break;
-        case PICK_NOVELTYPLUSPLUSPRIME:
-          NoveltyProm(FALSE);
-          if (iNumDecPromVars > 1) {
-            if (RandomProb(iPromDp)) {
-              if (iNumDecPromVars == 2) {
-                iFlipCandidate = aDecPromVarsList[RandomInt(iNumDecPromVars)];
-              } else {
-                iNumCandidates = 0;
-                for (j = 0; j < iNumDecPromVars; j++) {
-                  iVar = aDecPromVarsList[j];
-                  if ((iVar != iBestPromVar) && (iVar != iSecondBestPromVar))
-                    aCandidateList[iNumCandidates++] = iVar;
-                }
-                if (iNumCandidates != 0) {
-                  if (iNumCandidates == 1)
-                    iFlipCandidate = aCandidateList[0];
-                  else
-                    iFlipCandidate = aCandidateList[RandomInt(iNumCandidates)];
-                }
-              }
-            }
-          }
-          break;
-        case PICK_NOVELTYPLUSP:
-          NoveltyPromisingProm(FALSE);
-          break;
-
-        case PICK_GNOVELTYPLUS:
-          PickGNoveltyPlusProm();
-          break;
-
-        case PICK_DCCA:
-          PickDCCA();
-          break;
-
-        default:
-          // TODO: Put a default algorithm here, or restructure code to remove switch cases
-          break;
-
-      }
+      PerformPickPromisingVar();
     }
+
     if (iNumDecPromVars > 0) {
       bPerformNovelty = FALSE;
     }
@@ -991,165 +498,7 @@ void PickSatenstein() {
         }
       }
 
-      switch (iHeuristic) {
-
-        case H_PICK_NOVELTY:
-          if (bTabu)
-            PickNoveltyTabu();
-          else
-            PickNovelty();
-
-          break;
-
-        case H_PICK_NOVELTYPLUS:
-          if (bTabu)
-            PickNoveltyPlusTabu();
-          else
-            PickNoveltyPlus();
-
-          break;
-
-        case H_PICK_NOVELTYPLUSPLUS:
-          if (bTabu)
-            PickNoveltyPlusPlusTabu();
-          else
-            PickNoveltyPlusPlus();
-
-          break;
-
-        case H_PICK_NOVELTYPLUSPLUSPRIME:
-          if (bTabu)
-            PickNoveltyPlusPlusPrimeTabu();
-          else
-            PickNoveltyPlusPlusPrime();
-          break;
-
-        case H_PICK_RNOVELTY:
-          if (bTabu)
-            PickRNovelty();
-          else
-            PickRNovelty();
-
-          break;
-
-        case H_PICK_RNOVELTYPLUS:
-          if (bTabu)
-            PickRNoveltyPlus();
-          else
-            PickRNoveltyPlus();
-          break;
-
-
-        case H_PICK_VW1:
-          if (bTabu)
-            PickVW1Tabu();
-          else
-            PickVW1();
-
-          break;
-
-        case H_PICK_VW2:
-          if (bTabu)
-            PickVW2Tabu();
-          else {
-            if (!bNoise)
-              PickVW2();
-            else
-              PickVW2Automated();
-          }
-          break;
-
-        case H_PICK_WALKSAT:
-          if (bTabu)
-            PickWalkSatTabu();
-          else
-            PickWalkSatSKC();
-          break;
-
-        case H_PICK_NOVELTY_PROMISING:
-          if (bTabu)
-            PickNoveltyPromisingTabu();
-          else
-            PickNoveltyPromising();
-          break;
-
-        case H_PICK_NOVELTYPLUS_PROMISING:
-          if (bTabu)
-            PickNoveltyPlusPromisingTabu();
-          else
-            PickNoveltyPlusPromising();
-          break;
-
-        case H_PICK_NOVELTYPLUSPLUS_PROMISING:
-          if (bTabu)
-            PickNoveltyPlusPlusPromisingTabu();
-          else
-            PickNoveltyPlusPlusPromising();
-          break;
-
-        case H_PICK_NOVELTYPLUSPLUSPRIME_PROMISING:
-          if (bTabu)
-            PickNoveltyPlusPlusPrimePromisingTabu();
-          else
-            PickNoveltyPlusPlusPrimePromising();
-
-          break;
-
-        case H_PICK_NOVELTYPLUSFC:
-          PickNoveltyPlusFC();
-          break;
-
-        case H_PICK_NOVELTYPLUSPROMISINGFC:
-          PickNoveltyPlusPromisingFC();
-          break;
-
-        case H_PICK_RANDOMPROB:
-          if (RandomProb(iDp)) {
-            if (iNumFalse) {
-              iClause = SelectClause();
-              iClauseLen = aClauseLen[iClause];
-
-              pLit = pClauseLits[iClause];
-
-              iFlipCandidate = GetVarFromLit(*pLit);
-
-              pLit++;
-
-              for (j = 1; j < iClauseLen; j++) {
-                iVar = GetVarFromLit(*pLit);
-
-                if (aVW2Weights[iVar] < aVW2Weights[iFlipCandidate]) {
-                  iFlipCandidate = iVar;
-                }
-
-                pLit++;
-              }
-            } else {
-              iFlipCandidate = 0;
-            }
-          } else {
-
-            /* otherwise, use regular novelty */
-            if (!bTabu)
-              PickNovelty();
-            else
-              PickNoveltyTabu();
-          }
-
-          break;
-
-        case H_PICK_NOVELTYSATTIME:
-          PickNoveltySattime();
-          break;
-
-        case H_PICK_NOVELTYPLUSSATTIME:
-          PickNoveltyPlusSattime();
-          break;
-
-        case H_PICK_SPARROWPROBDIST:
-          PickSparrowProbDist();
-          break;
-      }
+      PerformHeuristic();
     }
   }
 
@@ -1165,306 +514,58 @@ void PickSatenstein() {
 
       bPerformNovelty = TRUE;
 
-      switch (iHeuristic) {
-        case 1:
-          if (bTabu)
-            PickNoveltyTabu();
-          else
-            PickNovelty();
-
-          break;
-
-        case 2:
-          if (bTabu)
-            PickNoveltyPlusTabu();
-          else
-            PickNoveltyPlus();
-
-          break;
-
-        case 3:
-          if (bTabu)
-            PickNoveltyPlusPlusTabu();
-          else
-            PickNoveltyPlusPlus();
-
-          break;
-
-        case 4:
-          if (bTabu)
-            PickNoveltyPlusPlusPrimeTabu();
-          else
-            PickNoveltyPlusPlusPrime();
-          break;
-
-        case 5:
-          if (bTabu)
-            PickRNovelty();
-          else
-            PickRNovelty();
-
-          break;
-
-        case 6:
-          if (bTabu)
-            PickRNoveltyPlus();
-          else
-            PickRNoveltyPlus();
-          break;
-
-
-        case 7:
-          if (bTabu)
-            PickVW1Tabu();
-          else
-            PickVW1();
-
-          break;
-        case 8:
-          if (bTabu)
-            PickVW2Tabu();
-          else {
-            if (!bNoise)
-              PickVW2();
-            else
-              PickVW2Automated();
-          }
-          break;
-
-
-        case 9:
-          if (bTabu)
-            PickWalkSatTabu();
-          else
-            PickWalkSatSKC();
-          break;
-
-        case 10:
-          if (bTabu)
-            PickNoveltyPromisingTabu();
-          else
-            PickNoveltyPromising();
-          break;
-
-        case 11:
-          if (bTabu)
-            PickNoveltyPlusPromisingTabu();
-          else
-            PickNoveltyPlusPromising();
-          break;
-
-        case 12:
-          if (bTabu)
-            PickNoveltyPlusPlusPromisingTabu();
-          else
-            PickNoveltyPlusPlusPromising();
-          break;
-
-        case 13:
-          if (bTabu)
-            PickNoveltyPlusPlusPrimePromisingTabu();
-          else
-            PickNoveltyPlusPlusPrimePromising();
-
-          break;
-        case 14:
-          PickNoveltyPlusFC();
-          break;
-
-        case 15:
-          PickNoveltyPlusPromisingFC();
-          break;
-
-        case 16:
-          if (RandomProb(iDp)) {
-            if (iNumFalse) {
-              iClause = SelectClause();
-              iClauseLen = aClauseLen[iClause];
-
-              pLit = pClauseLits[iClause];
-
-              iFlipCandidate = GetVarFromLit(*pLit);
-
-              pLit++;
-
-              for (j = 1; j < iClauseLen; j++) {
-                iVar = GetVarFromLit(*pLit);
-
-                if (aVW2Weights[iVar] < aVW2Weights[iFlipCandidate]) {
-                  iFlipCandidate = iVar;
-                }
-
-                pLit++;
-              }
-            } else {
-              iFlipCandidate = 0;
-            }
-          } else {
-
-            /* otherwise, use regular novelty */
-            if (!bTabu)
-              PickNovelty();
-            else
-              PickNoveltyTabu();
-          }
-
-          break;
-
-        case 17:
-          PickNoveltySattime();
-          break;
-
-        case 18:
-          PickNoveltyPlusSattime();
-          break;
-
-      }
+      PerformHeuristic();
     }
+
     else {
 
-      if (!bPen) {
+      if (bPen) {
+        PerformSmoothing();
+      }
+      else {
         // This part of code is never executed in our implementation for the paper
         // I will make a cleaner version by removing it.
+        PerformScoringMeasure();
+      }
 
-        if (!bVarInFalse) {
-          switch (iScoringMeasure) {
-            case 1:
-              iNumCandidates = 0;
-              iBestScore = iNumClauses;
-              /* check score of all variables */
+    }
 
-              for (j = 1; j <= iNumVars; j++) {
+  }
+}
 
-                /* use cached value of score */
+void PerformSmoothing() {
+  switch (iSmoothingScheme) {
 
-                if (!bTabu) {
-                  iScore = aBreakCount[j] - aMakeCount[j];
+    case 1:
+      PickSAPS();
+      break;
 
-                  /* build candidate list of best vars */
+    case 2:
+      PickPAWS();
+      break;
 
-                  if (iScore <= iBestScore) {
-                    if (iScore < iBestScore) {
-                      iNumCandidates = 0;
-                      iBestScore = iScore;
-                    }
-                    aCandidateList[iNumCandidates++] = j;
-                  }
-                }
+    default:
+      break;
+  }
+}
 
-                else {
-                  if (aVarLastChange[j] < iTabuCutoff) {
-                    iScore = aBreakCount[j] - aMakeCount[j];
+void PerformScoringMeasure() {
+  // TODO: Make these the same function with different arguments to reduce code duplication
+  if (!bVarInFalse) {
+    PerformScoringMeasureAllVars();
+  }
+  else {
+    PerformScoringMeasureVarsInFalseClauses();
+  }
+}
 
-                    /* build candidate list of best vars */
-                    if (iScore <= iBestScore) {
-                      if (iScore < iBestScore) {
-                        iNumCandidates = 0;
-                        iBestScore = iScore;
-                      }
-                      aCandidateList[iNumCandidates++] = j;
-                    }
-                  }
-                }
-              }
-              /* select flip candidate uniformly from candidate list */
-              if (iNumCandidates > 1)
-                iFlipCandidate = TieBreaking();
-              else
-                iFlipCandidate = aCandidateList[0];
-              break;
+void PerformScoringMeasureVarsInFalseClauses() {
+  UINT32 j;
+  UINT32 iVar;
+  SINT32 iScore = 0;
+  SINT32 iBestScore;
 
-            case 2:
-              iNumCandidates = 0;
-              iBestScore = iNumClauses;
-
-              /* check score of all variables */
-              for (j = 1; j <= iNumVars; j++) {
-                /* use cached value of score */
-
-                if (!bTabu) {
-                  iScore = -aMakeCount[j];
-                  /* build candidate list of best vars */
-                  if (iScore <= iBestScore) {
-                    if (iScore < iBestScore) {
-                      iNumCandidates = 0;
-                      iBestScore = iScore;
-                    }
-                    aCandidateList[iNumCandidates++] = j;
-                  }
-                }
-                else {
-                  if (aVarLastChange[j] < iTabuCutoff) {
-                    iScore = -aMakeCount[j];
-
-                    /* build candidate list of best vars */
-                    if (iScore <= iBestScore) {
-                      if (iScore < iBestScore) {
-                        iNumCandidates = 0;
-                        iBestScore = iScore;
-                      }
-                      aCandidateList[iNumCandidates++] = j;
-                    }
-                  }
-                }
-              }
-
-              /* select flip candidate uniformly from candidate list */
-              if (iNumCandidates > 1)
-                iFlipCandidate = TieBreaking();
-              else
-                iFlipCandidate = aCandidateList[0];
-              break;
-
-            case 3:
-              iNumCandidates = 0;
-              iBestScore = iNumClauses;
-              /* check score of all variables */
-
-              for (j = 1; j <= iNumVars; j++) {
-
-                /* use cached value of score */
-
-                if (!bTabu) {
-                  iScore = aBreakCount[j] - aMakeCount[j];
-
-                  /* build candidate list of best vars */
-
-                  if (iScore <= iBestScore) {
-                    if ((iScore < iBestScore) || (aVarLastChange[j] < aVarLastChange[*aCandidateList])) {
-                      iNumCandidates = 0;
-                      iBestScore = iScore;
-                    }
-                    aCandidateList[iNumCandidates++] = j;
-                  }
-                }
-
-                else {
-                  if (aVarLastChange[j] < iTabuCutoff) {
-                    iScore = aBreakCount[j] - aMakeCount[j];
-
-                    /* build candidate list of best vars */
-                    if ((iScore < iBestScore) || (aVarLastChange[j] < aVarLastChange[*aCandidateList])) {
-                      if (iScore < iBestScore) {
-                        iNumCandidates = 0;
-                        iBestScore = iScore;
-                      }
-                      aCandidateList[iNumCandidates++] = j;
-                    }
-                  }
-                }
-              }
-              /* select flip candidate uniformly from candidate list */
-              if (iNumCandidates > 1)
-                iFlipCandidate = TieBreaking();
-              else
-                iFlipCandidate = aCandidateList[0];
-              break;
-
-
-          }
-        }
-        else {
-          switch (iScoringMeasure) {
+  switch (iScoringMeasure) {
             case 1:
               iNumCandidates = 0;
               iBestScore = iNumClauses;
@@ -1599,27 +700,844 @@ void PickSatenstein() {
                 iFlipCandidate = aCandidateList[0];
               break;
 
+    default:
+      break;
+  }
+}
+
+void PerformScoringMeasureAllVars() {
+  UINT32 j;
+  SINT32 iScore = 0;
+  SINT32 iBestScore;
+
+  switch (iScoringMeasure) {
+            case 1:
+              iNumCandidates = 0;
+              iBestScore = iNumClauses;
+              /* check score of all variables */
+
+              for (j = 1; j <= iNumVars; j++) {
+
+                /* use cached value of score */
+
+                if (!bTabu) {
+                  iScore = aBreakCount[j] - aMakeCount[j];
+
+                  /* build candidate list of best vars */
+
+                  if (iScore <= iBestScore) {
+                    if (iScore < iBestScore) {
+                      iNumCandidates = 0;
+                      iBestScore = iScore;
+                    }
+                    aCandidateList[iNumCandidates++] = j;
+                  }
+                }
+
+                else {
+                  if (aVarLastChange[j] < iTabuCutoff) {
+                    iScore = aBreakCount[j] - aMakeCount[j];
+
+                    /* build candidate list of best vars */
+                    if (iScore <= iBestScore) {
+                      if (iScore < iBestScore) {
+                        iNumCandidates = 0;
+                        iBestScore = iScore;
+                      }
+                      aCandidateList[iNumCandidates++] = j;
+                    }
+                  }
+                }
+              }
+              /* select flip candidate uniformly from candidate list */
+              if (iNumCandidates > 1)
+                iFlipCandidate = TieBreaking();
+              else
+                iFlipCandidate = aCandidateList[0];
+              break;
+
+            case 2:
+              iNumCandidates = 0;
+              iBestScore = iNumClauses;
+
+              /* check score of all variables */
+              for (j = 1; j <= iNumVars; j++) {
+                /* use cached value of score */
+
+                if (!bTabu) {
+                  iScore = -aMakeCount[j];
+                  /* build candidate list of best vars */
+                  if (iScore <= iBestScore) {
+                    if (iScore < iBestScore) {
+                      iNumCandidates = 0;
+                      iBestScore = iScore;
+                    }
+                    aCandidateList[iNumCandidates++] = j;
+                  }
+                }
+                else {
+                  if (aVarLastChange[j] < iTabuCutoff) {
+                    iScore = -aMakeCount[j];
+
+                    /* build candidate list of best vars */
+                    if (iScore <= iBestScore) {
+                      if (iScore < iBestScore) {
+                        iNumCandidates = 0;
+                        iBestScore = iScore;
+                      }
+                      aCandidateList[iNumCandidates++] = j;
+                    }
+                  }
+                }
+              }
+
+              /* select flip candidate uniformly from candidate list */
+              if (iNumCandidates > 1)
+                iFlipCandidate = TieBreaking();
+              else
+                iFlipCandidate = aCandidateList[0];
+              break;
+
+            case 3:
+              iNumCandidates = 0;
+              iBestScore = iNumClauses;
+              /* check score of all variables */
+
+              for (j = 1; j <= iNumVars; j++) {
+
+                /* use cached value of score */
+
+                if (!bTabu) {
+                  iScore = aBreakCount[j] - aMakeCount[j];
+
+                  /* build candidate list of best vars */
+
+                  if (iScore <= iBestScore) {
+                    if ((iScore < iBestScore) || (aVarLastChange[j] < aVarLastChange[*aCandidateList])) {
+                      iNumCandidates = 0;
+                      iBestScore = iScore;
+                    }
+                    aCandidateList[iNumCandidates++] = j;
+                  }
+                }
+
+                else {
+                  if (aVarLastChange[j] < iTabuCutoff) {
+                    iScore = aBreakCount[j] - aMakeCount[j];
+
+                    /* build candidate list of best vars */
+                    if ((iScore < iBestScore) || (aVarLastChange[j] < aVarLastChange[*aCandidateList])) {
+                      if (iScore < iBestScore) {
+                        iNumCandidates = 0;
+                        iBestScore = iScore;
+                      }
+                      aCandidateList[iNumCandidates++] = j;
+                    }
+                  }
+                }
+              }
+              /* select flip candidate uniformly from candidate list */
+              if (iNumCandidates > 1)
+                iFlipCandidate = TieBreaking();
+              else
+                iFlipCandidate = aCandidateList[0];
+              break;
+
+
+    default:
+      break;
+  }
+}
+
+void PerformRandomWalk() {
+  UINT32 j;
+  UINT32 iVar;
+  UINT32 iClause;
+  UINT32 iClauseLen;
+  LITTYPE litPick;
+  LITTYPE *pLit;
+
+  switch (iRandomStep) {
+
+      case 1:
+        if (RandomProb(iRWp)) {
+          if (iNumFalse) {
+            iClause = SelectClause();
+            iClauseLen = aClauseLen[iClause];
+            litPick = (pClauseLits[iClause][RandomInt(iClauseLen)]);
+            iFlipCandidate = GetVarFromLit(litPick);
+            bPerformNovelty = FALSE;
+          } else {
+            iFlipCandidate = 0;
+          }
+        }
+
+        break;
+
+      case 2:
+        if (RandomProb(iRWpWalk)) {
+          if (iNumVarsInFalseList) {
+            iFlipCandidate = aVarInFalseList[RandomInt(iNumVarsInFalseList)];
+            bPerformNovelty = FALSE;
+          } else {
+            iFlipCandidate = 0;
+          }
+
+
+        }
+        break;
+
+      case 3:
+        if (RandomProb(iRDp)) {
+          if (iNumFalse) {
+
+            iClause = SelectClause();
+            iClauseLen = aClauseLen[iClause];
+
+            pLit = pClauseLits[iClause];
+
+            iFlipCandidate = GetVarFromLit(*pLit);
+
+            pLit++;
+
+            for (j = 1; j < iClauseLen; j++) {
+              iVar = GetVarFromLit(*pLit);
+
+              if (aVarLastChange[iVar] < aVarLastChange[iFlipCandidate]) {
+                iFlipCandidate = iVar;
+              }
+              pLit++;
+            }
+            bPerformNovelty = FALSE;
+          } else {
+            iFlipCandidate = 0;
+          }
+        }
+
+        break;
+
+      case 4:
+        if (RandomProb(iRFp)) {
+          if (iNumFalse) {
+            iClause = SelectClause();
+            iClauseLen = aClauseLen[iClause];
+
+            pLit = pClauseLits[iClause];
+
+            iFlipCandidate = GetVarFromLit(*pLit);
+
+            pLit++;
+
+            for (j = 1; j < iClauseLen; j++) {
+              iVar = GetVarFromLit(*pLit);
+
+              if (aFlipCounts[iVar] < aFlipCounts[iFlipCandidate]) {
+                iFlipCandidate = iVar;
+              }
+
+              pLit++;
+            }
+          } else {
+            iFlipCandidate = 0;
+          }
+          bPerformNovelty = FALSE;
+        }
+        break;
+
+      case 5:
+        if (RandomProb(iRFp)) {
+          if (iNumFalse) {
+            iClause = SelectClause();
+            iClauseLen = aClauseLen[iClause];
+
+            pLit = pClauseLits[iClause];
+
+            iFlipCandidate = GetVarFromLit(*pLit);
+
+            pLit++;
+
+            for (j = 1; j < iClauseLen; j++) {
+              iVar = GetVarFromLit(*pLit);
+
+              if (aVW2Weights[iVar] < aVW2Weights[iFlipCandidate]) {
+                iFlipCandidate = iVar;
+              }
+
+              pLit++;
+            }
+          } else {
+            iFlipCandidate = 0;
+          }
+          bPerformNovelty = FALSE;
+        }
+        break;
+
+    default:
+      break;
+  }
+}
+
+void PerformPickPromisingVar() {
+
+  UINT32 promVarIndex, i;
+  UINT32 iVar;
+  UINT32 iBestVarFlipCount;
+  FLOAT fBestVWWeight;
+  SINT32 iScore = 0;
+  SINT32 iBestScore;
+  BOOL FreebieExist;
+  UINT32 iLastChange;
+
+  switch (iDecStrategy) {
+
+    case PICK_FREEBIE:/* Checks for freebie (breakcount 0) variables in the
+                    promising decreasing variable stack. If there are
+                    freebies then selects among them according to the
+                    tie-breaking scheme. If there is not any free-bie
+                    randomly picks one variable from the promising
+                    decreasing variable list. */
+
+      iNumCandidates = 0;
+      FreebieExist = FALSE;
+
+      i = -1;
+      for (promVarIndex = 0; promVarIndex < iNumDecPromVars; promVarIndex++) {
+        iVar = aDecPromVarsList[promVarIndex];
+        iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
+        if (iScore < 0) {
+          if (CheckIfFreebie(iVar)) {
+            if (iNumCandidates == 0) {
+              FreebieExist = TRUE;
+            }
+            aCandidateList[iNumCandidates++] = iVar;
+          }
+        } else {
+          i = promVarIndex;
+          aIsDecPromVar[iVar] = FALSE;
+          break;
+        }
+      }
+
+      if (i != -1) {
+        for (promVarIndex = i + 1; promVarIndex < iNumDecPromVars; promVarIndex++) {
+          iVar = aDecPromVarsList[promVarIndex];
+          iScore = aVarScore[iVar];
+          if (iScore < 0) {
+            aDecPromVarsListPos[iVar] = i;
+            aDecPromVarsList[i++] = iVar;
+            if (CheckIfFreebie(iVar)) {
+              if (iNumCandidates == 0) {
+                FreebieExist = TRUE;
+              }
+              aCandidateList[iNumCandidates++] = iVar;
+            }
+          } else {
+            aIsDecPromVar[iVar] = FALSE;
+          }
+        }
+        iNumDecPromVars = i;
+      }
+
+      if (FreebieExist == TRUE) {
+        if (iNumCandidates > 1)
+          iFlipCandidate = TieBreaking();
+        else
+          iFlipCandidate = aCandidateList[0];
+      } else {
+        if (iNumDecPromVars > 0) {
+          if (iNumDecPromVars == 1)
+            iFlipCandidate = aDecPromVarsList[0];
+          else
+            iFlipCandidate = aDecPromVarsList[RandomInt(iNumDecPromVars)];
+        }
+      }
+      break;
+
+    case PICK_BESTSCORE: /* Flip the variable with highest score
+                    breaking ties in favor of the least
+                    recently flipped variable. This strategy
+                    is taken by G2WSAT, GNovelty+, adaptG2WSAT
+                    preliminary version. */
+
+      iBestScore = iNumFalse;  //CWBIG;    //BIG;
+      iLastChange = iStep;
+      i = -1;
+      for (promVarIndex = 0; promVarIndex < iNumDecPromVars; promVarIndex++) {
+        iVar = aDecPromVarsList[promVarIndex];
+        if (!bPen)
+          iScore = aVarScore[iVar];
+        else
+          iScore = aVarPenScore[iVar];
+        if (iScore < 0) {
+          if (iScore < iBestScore) {
+            iBestScore = iScore;
+            iLastChange = aVarLastChange[iVar];
+            iFlipCandidate = iVar;
+          } else if (iScore == iBestScore) {
+            if (aVarLastChange[iVar] < iLastChange) {
+              iLastChange = aVarLastChange[iVar];
+              iFlipCandidate = iVar;
+            }
+          }
+        } else {
+          i = promVarIndex;
+          aIsDecPromVar[iVar] = FALSE;
+          break;
+        }
+      }
+
+      if (i != -1) {
+        for (promVarIndex = i + 1; promVarIndex < iNumDecPromVars; promVarIndex++) {
+          iVar = aDecPromVarsList[promVarIndex];
+          if (!bPen)
+            iScore = aVarScore[iVar];
+          else
+            iScore = aVarPenScore[iVar];
+          if (iScore < 0) {
+            aDecPromVarsListPos[iVar] = i;
+            aDecPromVarsList[i++] = iVar;
+            if (iScore < iBestScore) {
+              iBestScore = iScore;
+              iLastChange = aVarLastChange[iVar];
+              iFlipCandidate = iVar;
+            } else if (iScore == iBestScore) {
+              if (aVarLastChange[iVar] < iLastChange) {
+                iLastChange = aVarLastChange[iVar];
+                iFlipCandidate = iVar;
+              }
+            }
+          } else {
+            aIsDecPromVar[iVar] = FALSE;
+          }
+        }
+        iNumDecPromVars = i;
+      }
+      break;
+
+    case PICK_OLDEST: /* Selects the least recently flipped variable
+                    from the promising decreasing variable list.
+                    This strategy is present in adaptG2WSAT0,
+                    adaptG2WSAT+ and adaptG2WSAT+p. */
+      iLastChange = iStep;
+      i = -1;
+      for (promVarIndex = 0; promVarIndex < iNumDecPromVars; promVarIndex++) {
+        iVar = aDecPromVarsList[promVarIndex];
+        iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
+        if (iScore < 0) {
+          if (aVarLastChange[iVar] < iLastChange) {
+            iLastChange = aVarLastChange[iVar];
+            iFlipCandidate = iVar;
+          }
+        }
+        else {
+          i = promVarIndex;
+          aIsDecPromVar[iVar] = FALSE;
+          break;
+        }
+      }
+
+      if (i != -1) {
+        for (promVarIndex = i + 1; promVarIndex < iNumDecPromVars; promVarIndex++) {
+          iVar = aDecPromVarsList[promVarIndex];
+          iScore = aVarScore[iVar];
+          if (iScore < 0) {
+            aDecPromVarsListPos[iVar] = i;
+            aDecPromVarsList[i++] = iVar;
+            if (aVarLastChange[iVar] < iLastChange) {
+              iLastChange = aVarLastChange[iVar];
+              iFlipCandidate = iVar;
+            }
+          }
+          else {
+            aIsDecPromVar[iVar] = FALSE;
+          }
+        }
+        iNumDecPromVars = i;
+      }
+
+      break;
+
+    case PICK_BEST_VW1:  /*Pick the variable that has been flipped least number of times
+                    Any remaining ties are broken according to the tie-breaking
+                    policy. */
+      iNumCandidates = 0;
+      fBestVWWeight = (FLOAT) iStep;
+      i = -1;
+
+      for (promVarIndex = 0; promVarIndex < iNumDecPromVars; promVarIndex++) {
+        iVar = aDecPromVarsList[promVarIndex];
+        iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
+        if (iScore < 0) {
+          if (aVW2Weights[iVar] <= fBestVWWeight) {
+            if (aVW2Weights[iVar] < fBestVWWeight) {
+              iNumCandidates = 0;
+              fBestVWWeight = aVW2Weights[iVar];
+            }
+            aCandidateList[iNumCandidates++] = iVar;
+          }
+        }
+        else {
+          i = promVarIndex;
+          aIsDecPromVar[iVar] = FALSE;
+          break;
+        }
+      }
+
+      if (i != -1) {
+        for (promVarIndex = i + 1; promVarIndex < iNumDecPromVars; promVarIndex++) {
+          iVar = aDecPromVarsList[promVarIndex];
+          iScore = aVarScore[iVar];
+          if (iScore < 0) {
+            aDecPromVarsListPos[iVar] = i;
+            aDecPromVarsList[i++] = iVar;
+            if (aVW2Weights[iVar] <= fBestVWWeight) {
+              if (aVW2Weights[iVar] < fBestVWWeight) {
+                iNumCandidates = 0;
+                fBestVWWeight = aVW2Weights[iVar];
+              }
+              aCandidateList[iNumCandidates++] = iVar;
+            }
+
+          }
+          else {
+            aIsDecPromVar[iVar] = FALSE;
+          }
+        }
+        iNumDecPromVars = i;
+      }
+
+
+      if (iNumCandidates > 1)
+        iFlipCandidate = TieBreaking();
+      else
+        iFlipCandidate = aCandidateList[0];
+
+      break;
+
+    case PICK_BEST_VW2:  /*Pick the variable that has been flipped least number of times
+                    Any remaining ties are broken according to the tie-breaking
+                    policy. */
+      iNumCandidates = 0;
+      iBestVarFlipCount = iStep;
+      i = -1;
+
+      for (promVarIndex = 0; promVarIndex < iNumDecPromVars; promVarIndex++) {
+        iVar = aDecPromVarsList[promVarIndex];
+        iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
+        if (iScore < 0) {
+          if (aFlipCounts[iVar] <= iBestVarFlipCount) {
+            if (aFlipCounts[iVar] < iBestVarFlipCount) {
+              iNumCandidates = 0;
+              iBestVarFlipCount = aFlipCounts[iVar];
+            }
+            aCandidateList[iNumCandidates++] = iVar;
+          }
+        }
+        else {
+          i = promVarIndex;
+          aIsDecPromVar[iVar] = FALSE;
+          break;
+        }
+      }
+
+      if (i != -1) {
+        for (promVarIndex = i + 1; promVarIndex < iNumDecPromVars; promVarIndex++) {
+          iVar = aDecPromVarsList[promVarIndex];
+          iScore = aVarScore[iVar];
+          if (iScore < 0) {
+            aDecPromVarsListPos[iVar] = i;
+            aDecPromVarsList[i++] = iVar;
+            if (aFlipCounts[iVar] <= iBestVarFlipCount) {
+              if (aFlipCounts[iVar] < iBestVarFlipCount) {
+                iNumCandidates = 0;
+                iBestVarFlipCount = aFlipCounts[iVar];
+              }
+              aCandidateList[iNumCandidates++] = iVar;
+            }
+          }
+          else {
+            aIsDecPromVar[iVar] = FALSE;
+          }
+        }
+        iNumDecPromVars = i;
+      }
+
+
+      if (iNumCandidates > 1)
+        iFlipCandidate = TieBreaking();
+      else
+        iFlipCandidate = aCandidateList[0];
+
+      break;
+
+
+    case PICK_RANDOM:  /* Select randomly a variable from the
+                    promising decreasing variable. */
+      i = -1;
+
+      for (promVarIndex = 0; promVarIndex < iNumDecPromVars; promVarIndex++) {
+        iVar = aDecPromVarsList[promVarIndex];
+        iScore = bPen ? aVarPenScore[iVar] : aVarScore[iVar];
+        if (iScore < 0) {
+        } else {
+          i = promVarIndex;
+          aIsDecPromVar[iVar] = FALSE;
+          break;
+        }
+      }
+
+      if (i != -1) {
+        for (promVarIndex = i + 1; promVarIndex < iNumDecPromVars; promVarIndex++) {
+          iVar = aDecPromVarsList[promVarIndex];
+          iScore = aVarScore[iVar];
+          if (iScore < 0) {
+            aDecPromVarsListPos[iVar] = i;
+            aDecPromVarsList[i++] = iVar;
+          } else {
+            aIsDecPromVar[iVar] = FALSE;
+          }
+        }
+        iNumDecPromVars = i;
+      }
+
+      if (iNumDecPromVars > 0) {
+        if (iNumDecPromVars == 1)
+          iFlipCandidate = aDecPromVarsList[0];
+        else
+          iFlipCandidate = aDecPromVarsList[RandomInt(iNumDecPromVars)];
+      }
+
+
+      break;
+    case PICK_NOVELTY:
+      NoveltyProm(FALSE);
+      break;
+
+    case PICK_NOVELTYPLUSPLUS:
+      NoveltyProm(TRUE);
+      if (iNumDecPromVars > 1) {
+        if (RandomProb(iPromDp))
+          iFlipCandidate = iLeastRecentlyFlippedPromVar;
+      }
+      break;
+    case PICK_NOVELTYPLUS:
+      NoveltyProm(FALSE);
+      if (iNumDecPromVars > 1) {
+        if (RandomProb(iPromWp))
+          iFlipCandidate = aDecPromVarsList[RandomInt(iNumDecPromVars)];
+      }
+      break;
+    case PICK_NOVELTYPLUSPLUSPRIME:
+      NoveltyProm(FALSE);
+      if (iNumDecPromVars > 1) {
+        if (RandomProb(iPromDp)) {
+          if (iNumDecPromVars == 2) {
+            iFlipCandidate = aDecPromVarsList[RandomInt(iNumDecPromVars)];
+          } else {
+            iNumCandidates = 0;
+            for (promVarIndex = 0; promVarIndex < iNumDecPromVars; promVarIndex++) {
+              iVar = aDecPromVarsList[promVarIndex];
+              if ((iVar != iBestPromVar) && (iVar != iSecondBestPromVar))
+                aCandidateList[iNumCandidates++] = iVar;
+            }
+            if (iNumCandidates != 0) {
+              if (iNumCandidates == 1)
+                iFlipCandidate = aCandidateList[0];
+              else
+                iFlipCandidate = aCandidateList[RandomInt(iNumCandidates)];
+            }
           }
         }
       }
-      else {
-        switch (iSmoothingScheme) {
+      break;
+    case PICK_NOVELTYPLUSP:
+      NoveltyPromisingProm(FALSE);
+      break;
 
-          case 1:
+    case PICK_GNOVELTYPLUS:
+      PickGNoveltyPlusProm();
+      break;
 
-            PickSAPS();
-            break;
+    case PICK_DCCA:
+      PickDCCA();
+      break;
 
-          case 2:
-            PickPAWS();
-            break;
-
-        }
+    default:
+      // This should never be reached
+      break;
 
       }
+}
 
-    }
+void PerformHeuristic() {
+  UINT32 j;
+  UINT32 iVar;
+  UINT32 iClause;
+  UINT32 iClauseLen;
+  LITTYPE *pLit;
 
+  switch (iHeuristic) {
+
+    case H_PICK_NOVELTY:
+      if (bTabu)
+        PickNoveltyTabu();
+      else
+        PickNovelty();
+
+      break;
+
+    case H_PICK_NOVELTYPLUS:
+      if (bTabu)
+        PickNoveltyPlusTabu();
+      else
+        PickNoveltyPlus();
+
+      break;
+
+    case H_PICK_NOVELTYPLUSPLUS:
+      if (bTabu)
+        PickNoveltyPlusPlusTabu();
+      else
+        PickNoveltyPlusPlus();
+
+      break;
+
+    case H_PICK_NOVELTYPLUSPLUSPRIME:
+      if (bTabu)
+        PickNoveltyPlusPlusPrimeTabu();
+      else
+        PickNoveltyPlusPlusPrime();
+      break;
+
+    case H_PICK_RNOVELTY:
+      PickRNovelty();
+      break;
+
+    case H_PICK_RNOVELTYPLUS:
+      PickRNoveltyPlus();
+      break;
+
+    case H_PICK_VW1:
+      if (bTabu)
+        PickVW1Tabu();
+      else
+        PickVW1();
+
+      break;
+
+    case H_PICK_VW2:
+      if (bTabu)
+        PickVW2Tabu();
+      else {
+        if (!bNoise)
+          PickVW2();
+        else
+          PickVW2Automated();
+      }
+      break;
+
+    case H_PICK_WALKSAT:
+      if (bTabu)
+        PickWalkSatTabu();
+      else
+        PickWalkSatSKC();
+      break;
+
+    case H_PICK_NOVELTY_PROMISING:
+      if (bTabu)
+        PickNoveltyPromisingTabu();
+      else
+        PickNoveltyPromising();
+      break;
+
+    case H_PICK_NOVELTYPLUS_PROMISING:
+      if (bTabu)
+        PickNoveltyPlusPromisingTabu();
+      else
+        PickNoveltyPlusPromising();
+      break;
+
+    case H_PICK_NOVELTYPLUSPLUS_PROMISING:
+      if (bTabu)
+        PickNoveltyPlusPlusPromisingTabu();
+      else
+        PickNoveltyPlusPlusPromising();
+      break;
+
+    case H_PICK_NOVELTYPLUSPLUSPRIME_PROMISING:
+      if (bTabu)
+        PickNoveltyPlusPlusPrimePromisingTabu();
+      else
+        PickNoveltyPlusPlusPrimePromising();
+
+      break;
+
+    case H_PICK_NOVELTYPLUSFC:
+      PickNoveltyPlusFC();
+      break;
+
+    case H_PICK_NOVELTYPLUSPROMISINGFC:
+      PickNoveltyPlusPromisingFC();
+      break;
+
+    case H_PICK_RANDOMPROB:
+      if (RandomProb(iDp)) {
+        if (iNumFalse) {
+          iClause = SelectClause();
+          iClauseLen = aClauseLen[iClause];
+
+          pLit = pClauseLits[iClause];
+
+          iFlipCandidate = GetVarFromLit(*pLit);
+
+          pLit++;
+
+          for (j = 1; j < iClauseLen; j++) {
+            iVar = GetVarFromLit(*pLit);
+
+            if (aVW2Weights[iVar] < aVW2Weights[iFlipCandidate]) {
+              iFlipCandidate = iVar;
+            }
+
+            pLit++;
+          }
+        } else {
+          iFlipCandidate = 0;
+        }
+      } else {
+
+        /* otherwise, use regular novelty */
+        if (!bTabu)
+          PickNovelty();
+        else
+          PickNoveltyTabu();
+      }
+
+      break;
+
+    case H_PICK_NOVELTYSATTIME:
+      PickNoveltySattime();
+      break;
+
+    case H_PICK_NOVELTYPLUSSATTIME:
+      PickNoveltyPlusSattime();
+      break;
+
+    case H_PICK_SPARROWPROBDIST:
+      PickSparrowProbDist();
+
+      if (bPromisingList) {
+        if (RandomProb(iPs)) {
+          SmoothSparrow();
+        } else {
+          ScaleSparrow();
+        }
+      }
+
+      break;
+
+    default:
+      break;
   }
 }
 
@@ -1687,8 +1605,7 @@ UINT32 TieBreaking() {
 
   switch (iTieBreaking) {
     case 1:
-      return aCandidateList[RandomInt(iNumCandidates)];;
-      break;
+      return aCandidateList[RandomInt(iNumCandidates)];
 
     case 2:
       iFlipCandidate = aCandidateList[0];
@@ -1699,7 +1616,6 @@ UINT32 TieBreaking() {
         }
       }
       return iFlipCandidate;
-      break;
 
     case 3:
       iFlipCandidate = aCandidateList[0];
@@ -1710,7 +1626,7 @@ UINT32 TieBreaking() {
         }
       }
       return iFlipCandidate;
-      break;
+
     case 4:
       iFlipCandidate = aCandidateList[0];
       for (j = 0; j < iNumCandidates; j++) {
@@ -1719,25 +1635,19 @@ UINT32 TieBreaking() {
         }
       }
       return iFlipCandidate;
-      break;
+
+    default:
+      return 0;
   }
 
-  return 0;
 }
 
 
 BOOL CheckIfFreebie(UINT32 iLookVar) {
   UINT32 i;
-  UINT32 j;
   SINT32 iScore = 0;
-  SINT32 iMakeScore = 0;
-  UINT32 iClause;
-  UINT32 iClauseLen;
-  UINT32 iVar;
-  LITTYPE *pLit;
   LITTYPE *pClause;
   LITTYPE litWasTrue;
-  LITTYPE litWasFalse;
   UINT32 iNumOcc;
 
   if (iLookVar == 0) {
@@ -1745,23 +1655,6 @@ BOOL CheckIfFreebie(UINT32 iLookVar) {
   }
 
   litWasTrue = GetTrueLit(iLookVar);
-
-  // printf("\n The lit is true %d",IsLitTrue(litWasTrue));
-
-  litWasFalse = GetFalseLit(iLookVar);
-  // printf("\n The lit is true %d",IsLitTrue(litWasFalse));
-/*
-    iNumOcc = aNumLitOcc[litWasFalse];
-    pClause = pLitClause[litWasFalse];
-
-    for (i=0;i<iNumOcc;i++) {
-      if (aNumTrueLit[*pClause]==0) {
-        iMakeScore++;
-      }
-      pClause++;
-    }
-
-*/
 
   iNumOcc = aNumLitOcc[litWasTrue];
   pClause = pLitClause[litWasTrue];
@@ -1773,19 +1666,10 @@ BOOL CheckIfFreebie(UINT32 iLookVar) {
     pClause++;
   }
 
-/* 
-  printf("\n Breakcount is %u",aBreakCount[iLookVar]);
-  printf("\n Computed BreakCount is %d", iScore);
-  printf("\n MakeCount is %u",aMakeCount[iLookVar]);
-  printf("\n Computed MakeCount is %d", iMakeScore);
-  printf("\n Varscore is %d", aVarScore[iLookVar]);
-*/
   if (iScore == 0)
     return TRUE;
   else
     return FALSE;
-
-//return FALSE;
 
 }
 
@@ -1809,7 +1693,7 @@ void NoveltyProm(BOOL trackLastChanged) {
 }
 
 UINT32 updateDecPromVarsNovelty(BOOL trackLastChanged) {
-  int i, j;
+  UINT32 i, j;
   UINT32 iLastChange = iStep;
   SINT32 iScore;
   SINT32 iBestScore = bPen ? iSumFalsePen : iNumFalse;
@@ -1853,7 +1737,7 @@ UINT32 updateDecPromVarsNovelty(BOOL trackLastChanged) {
       break;
     }
   }
-  j++;
+
   if (i != -1) {
     for (j = i + 1; j < iNumDecPromVars; j++) {
       iVar = aDecPromVarsList[j];

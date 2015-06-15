@@ -20,69 +20,10 @@
 
 */
 
-
-#include "ubcsat.h"
+#include "novelty.h"
 
 PROBABILITY iNovNoise;
 PROBABILITY iDp;
-
-void PickNovelty();
-void PickNoveltyW();
-void PickNoveltyTabu();
-void PickNoveltyTabuW();
-
-
-void PickNoveltyPlus();
-void PickNoveltyPlusW();
-void PickNoveltyPlusTabu();
-void PickNoveltyPlusTabuW();
-
-void PickNoveltyPlusPlus();
-void PickNoveltyPlusPlusW();
-void PickNoveltyPlusPlusTabu();
-void PickNoveltyPlusPlusTabuW();
-
-void PickNoveltyPlusPlusPrime();
-void PickNoveltyPlusPlusPrimeW();
-void PickNoveltyPlusPlusPrimeTabu();
-void PickNoveltyPlusPlusPrimeTabuW();
-
-void PickNoveltyPromising();
-void PickNoveltyPromisingW();
-void PickNoveltyPromisingTabu();
-void PickNoveltyPromisingTabuW();
-
-void PickNoveltyPlusPromising();
-void PickNoveltyPlusPromisingW();
-void PickNoveltyPlusPromisingTabu();
-void PickNoveltyPlusPromisingTabuW();
-
-
-void PickNoveltyPlusPlusPromising();
-void PickNoveltyPlusPlusPromisingW();
-void PickNoveltyPlusPlusPromisingTabu();
-void PickNoveltyPlusPlusPromisingTabuW();
-
-void PickNoveltyPlusPlusPrimePromising();
-void PickNoveltyPlusPlusPrimePromisingW();
-void PickNoveltyPlusPlusPromisingTabu();
-
-void PickNoveltyPlusFC();
-void PickNoveltyPlusPromisingFC();
-
-void PickNoveltySattime();
-void PickNoveltyPlusSattime();
-
-extern UINT32 SelectClause();
-
-
-
-void InitSimulatedFlip();
-void CreateSimulatedFlip();
-void InitLookAhead();
-void CreateLookAhead();
-
-
 
 UINT32 PromisingScore(UINT32);
 UINT32 iSelectClause;
@@ -95,8 +36,6 @@ UINT32 *aIsLookAhead;
 UINT32 *aLookAheadList;
 SINT32 *aLookAheadScoreChange;
 
-extern UINT32 iNumDecPromVars;
-extern UINT32 *aDecPromVarsList;
 #define UpdateLookAhead(var,diff) {if(aIsLookAhead[var]==FALSE) {aIsLookAhead[var]=TRUE; aLookAheadList[iNumLookAhead++] = var; aLookAheadScoreChange[var] = (diff);} else {aLookAheadScoreChange[var] += (diff);}};
 
 void AddNovelty() {

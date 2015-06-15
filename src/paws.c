@@ -20,10 +20,7 @@
 
 */
 
-#include "ubcsat.h"
-
-void PickPAWS();
-void PostFlipPAWS();
+#include "paws.h"
 
 UINT32 iPAWSMaxInc;
 PROBABILITY iPAWSFlatMove;

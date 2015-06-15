@@ -20,12 +20,7 @@
 
 */
 
-#include "ubcsat.h"
-
-void PickRNovelty();
-void PickRNoveltyPlus();
-void PickRNoveltyPlusW();
-void PickRNoveltyCoreW();
+#include "rnovelty.h"
 
 void AddRNovelty() {
 

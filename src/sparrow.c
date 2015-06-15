@@ -25,7 +25,7 @@
 
 */
 
-#include "ubcsat.h"
+#include "sparrow.h"
 
 #ifdef __cplusplus
 namespace ubcsat {
@@ -33,36 +33,17 @@ namespace ubcsat {
 
 /*
     Note: For consistency, we use the same weighted promising variable scheme as in gNovelty+, which has some quirks,
-    espeically during smoothing & scaling updates.
+    especially during smoothing & scaling updates.
 */
 
-void PickSparrow();
-
-void PickSparrowProbDist();
-
-void ScaleSparrow();
-void SmoothSparrow();
-void FlipSparrow();
-void InitSparrow();
-void SparrowSat2011Settings();
-
-void CreateSparrowPromVars();
-void InitSparrowPromVars();
-
-void CreateSparrowScore();
-void InitSparrowScore();
-
-void CreateSparrowWeights();
-
-FLOAT *aSparrowWeights;
-
-// Sparrow params
 FLOAT fSparrowC1;
 UINT32 iSparrowC2;
 FLOAT fSparrowC3;
 FLOAT fInvSparrowC3;
 
 FLOAT aSparrowPreCalc[11];
+
+FLOAT *aSparrowWeights;
 
 
 void AddSparrow() {
@@ -107,7 +88,6 @@ void AddSparrow() {
   CreateTrigger("SparrowSat2011Settings",PostRead,SparrowSat2011Settings,"","");
 }
 
-// TODO: Expose these parameters in SATenstein
 void SparrowSat2011Settings() {
   // These settings provided by Adrian Balint for the SAT 2011 competition
   if (iMaxClauseLen < 4) {
@@ -387,7 +367,7 @@ void FlipSparrow() {
   }
 
   pShareVar = pVarsShareClause[iFlipCandidate];
-  for (j=0; j < aNumVarsShareClause[iFlipCandidate]; j++) {
+  for (j = 0; j < aNumVarsShareClause[iFlipCandidate]; j++) {
     if (aVarScore[*pShareVar] < 0) {
       if (!aIsDecPromVar[*pShareVar]) {
         aDecPromVarsList[iNumDecPromVars++] = *pShareVar;

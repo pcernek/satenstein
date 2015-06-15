@@ -20,10 +20,8 @@
 
 */
 
-#include "ubcsat.h"
+#include "walksat.h"
 
-void PickWalkSatSKC();
-void PickWalkSatSKCW();
 UINT32 PickClauseWCSPen();
 PROBABILITY iWpWalk; 
 

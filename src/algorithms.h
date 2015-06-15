@@ -24,7 +24,11 @@
 
 
 #include "dcca.h"
+#include "novelty.h"
+#include "paws.h"
+#include "rnovelty.h"
 #include "sparrow.h"
+#include "walksat.h"
 
 void AddAlgorithms();
 

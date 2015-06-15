@@ -5049,14 +5049,7 @@ void InitDecPromPenVars() {
 
   iNumDecPromVars = 0;
 
-  numCSDvars = 0;
-  numNVDvars = 0;
-  numSDvars = 0;
-
   for (j=1;j<=iNumVars;j++) {
-
-    CSchangedList[j]= FALSE;
-    NVchangedList[j] = FALSE;
 
     if (aVarPenScore[j] < 0) {
       aDecPromVarsListPos[j] = iNumDecPromVars;
@@ -5085,8 +5078,6 @@ void UpdateDecPromPenVars() {
 
         }
       }
-      j = 0;
-      k = 0;
 
       if (aIsDecPromVar[iFlipCandidate]) {
         /* A variable just flipped at the last step cannot be
@@ -5391,18 +5382,17 @@ void FlipTrackChangesFCLPen() {
   /*This method of update is observed in 
     GNovelty+ */
 
-  if(iUpdateSchemePromList == 3)
-  {
-  iNumNeighbor = aNumVarsShareClause[iFlipCandidate];
-  pNeighbor = pVarsShareClause[iFlipCandidate];
-  for(j = 0; j <iNumNeighbor; j++){
-  iVar = *pNeighbor;
-  if(aVarPenScore[iVar] >=0)
-  aIsDecPromVar[iVar] = FALSE;
-  else
-  aIsDecPromVar[iVar] = TRUE;
-  pNeighbor++;
-  }
+  if (iUpdateSchemePromList == 3) {
+    iNumNeighbor = aNumVarsShareClause[iFlipCandidate];
+    pNeighbor = pVarsShareClause[iFlipCandidate];
+    for (j = 0; j < iNumNeighbor; j++) {
+      iVar = *pNeighbor;
+      if (aVarPenScore[iVar] >= 0)
+        aIsDecPromVar[iVar] = FALSE;
+      else
+        aIsDecPromVar[iVar] = TRUE;
+      pNeighbor++;
+    }
   }
   iNumChanges = 0;
 
@@ -5412,9 +5402,9 @@ void FlipTrackChangesFCLPen() {
   aVarValue[iFlipCandidate] = 1 - aVarValue[iFlipCandidate];
 
   pClause = pLitClause[litWasTrue];
-  for (j=0;j<aNumLitOcc[litWasTrue];j++) {
+  for (j = 0; j < aNumLitOcc[litWasTrue]; j++) {
     aNumTrueLit[*pClause]--;
-    if (aNumTrueLit[*pClause]==0) {
+    if (aNumTrueLit[*pClause] == 0) {
 
       aFalseList[iNumFalse] = *pClause;
       aFalseListPos[*pClause] = iNumFalse++;
@@ -5424,7 +5414,7 @@ void FlipTrackChangesFCLPen() {
       aVarPenScore[iFlipCandidate] -= aClausePen[*pClause];
       aVarScore[iFlipCandidate]--;
       pLit = pClauseLits[*pClause];
-      for (k=0;k<aClauseLen[*pClause];k++) {
+      for (k = 0; k < aClauseLen[*pClause]; k++) {
         iVar = GetVarFromLit(*pLit);
         UpdateChangePen(iVar);
         aVarPenScore[iVar] -= aClausePen[*pClause];
@@ -5432,9 +5422,9 @@ void FlipTrackChangesFCLPen() {
         pLit++;
       }
     }
-    if (aNumTrueLit[*pClause]==1) {
+    if (aNumTrueLit[*pClause] == 1) {
       pLit = pClauseLits[*pClause];
-      for (k=0;k<aClauseLen[*pClause];k++) {
+      for (k = 0; k < aClauseLen[*pClause]; k++) {
         if (IsLitTrue(*pLit)) {
           iVar = GetVarFromLit(*pLit);
           UpdateChangePen(iVar);
@@ -5450,16 +5440,16 @@ void FlipTrackChangesFCLPen() {
   }
 
   pClause = pLitClause[litWasFalse];
-  for (j=0;j<aNumLitOcc[litWasFalse];j++) {
+  for (j = 0; j < aNumLitOcc[litWasFalse]; j++) {
     aNumTrueLit[*pClause]++;
-    if (aNumTrueLit[*pClause]==1) {
+    if (aNumTrueLit[*pClause] == 1) {
 
       aFalseList[aFalseListPos[*pClause]] = aFalseList[--iNumFalse];
       aFalseListPos[aFalseList[iNumFalse]] = aFalseListPos[*pClause];
       iSumFalsePen -= aClausePen[*pClause];
 
       pLit = pClauseLits[*pClause];
-      for (k=0;k<aClauseLen[*pClause];k++) {
+      for (k = 0; k < aClauseLen[*pClause]; k++) {
         iVar = GetVarFromLit(*pLit);
         UpdateChangePen(iVar);
         aVarPenScore[iVar] += aClausePen[*pClause];
@@ -5471,7 +5461,7 @@ void FlipTrackChangesFCLPen() {
       aVarScore[iFlipCandidate]++;
       aCritSat[*pClause] = iFlipCandidate;
     }
-    if (aNumTrueLit[*pClause]==2) {
+    if (aNumTrueLit[*pClause] == 2) {
       iVar = aCritSat[*pClause];
       UpdateChangePen(iVar);
       aVarPenScore[iVar] -= aClausePen[*pClause];
@@ -5480,20 +5470,19 @@ void FlipTrackChangesFCLPen() {
     pClause++;
   }
 
-  if(iUpdateSchemePromList == 3)
-  {
-  iNumNeighbor = aNumVarsShareClause[iFlipCandidate];
-  pNeighbor = pVarsShareClause[iFlipCandidate];
-  for(j = 0; j <iNumNeighbor; j++){
-  iVar = *pNeighbor;
-  if((aVarPenScore[iVar] < 0) && !aIsDecPromVar[iVar]){
-  aIsDecPromVar[iVar] = TRUE;
-  aDecPromVarsListPos[iVar] = iNumDecPromVars;
-  aDecPromVarsList[iNumDecPromVars++] = iVar;
+  if (iUpdateSchemePromList == 3) {
+    iNumNeighbor = aNumVarsShareClause[iFlipCandidate];
+    pNeighbor = pVarsShareClause[iFlipCandidate];
+    for (j = 0; j < iNumNeighbor; j++) {
+      iVar = *pNeighbor;
+      if ((aVarPenScore[iVar] < 0) && !aIsDecPromVar[iVar]) {
+        aIsDecPromVar[iVar] = TRUE;
+        aDecPromVarsListPos[iVar] = iNumDecPromVars;
+        aDecPromVarsList[iNumDecPromVars++] = iVar;
+      }
+      pNeighbor++;
+    }
   }
-  pNeighbor++;
-  }
- }
 }
 
 

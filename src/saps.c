@@ -54,7 +54,7 @@ void AddSAPS() {
     "PickSAPS,PostFlipSAPS",
     "DefaultProcedures,Flip+MBPFL+FCL+VIF",
     "default","default");
-  
+
   AddParmFloat(&pCurAlg->parmList,"-alpha","scaling parameter alpha [default %s]","when a local minimum is encountered,~multiply all unsatisfied cluase penalties by FL","",&fAlpha,1.3f);
   AddParmFloat(&pCurAlg->parmList,"-rho","smoothing parameter rho [default %s]","when smoothing occurs, smooth penalties by a factor of FL","",&fRho,0.8f);
   AddParmProbability(&pCurAlg->parmList,"-ps","smooth probabilty [default %s]","when a local minimum is encountered,~smooth penalties with probability PR","",&iPs,0.05);
@@ -73,7 +73,7 @@ void AddSAPS() {
     "PickSAPS,PostFlipSAPS",
     "DefaultProceduresW,InitClausePenaltyFLW,Flip+MBPFL+FCL+VIF+W",
     "default_w","default");
-  
+
   CopyParameters(pCurAlg,"saps","",FALSE,0);
 
 
@@ -84,7 +84,7 @@ void AddSAPS() {
     "PickSAPS,PostFlipSAPSWSmooth",
     "DefaultProceduresW,InitClausePenaltyFLW,Flip+MBPFL+FCL+VIF+W",
     "default_w","default");
-  
+
   CopyParameters(pCurAlg,"saps","",FALSE,0);
 
   CreateTrigger("PostFlipSAPSWSmooth",PostFlip,PostFlipSAPSWSmooth,"","");
@@ -122,7 +122,7 @@ void AddSAPS() {
 }
 
 void PickSAPS() {
-  
+
   UINT32 j;
   UINT32 iVar;
   FLOAT fScore;
@@ -131,245 +131,244 @@ void PickSAPS() {
 
   iNumCandidates = 0;
   fBestScore = FLOATMAX;
-       if(bTabu)
-  {
-      if (iStep > iTabuTenure) {
-       iTabuCutoff = iStep - iTabuTenure;
+  if (bTabu) {
+    if (iStep > iTabuTenure) {
+      iTabuCutoff = iStep - iTabuTenure;
       if (iVarLastChangeReset > iTabuCutoff) {
-       iTabuCutoff = iVarLastChangeReset;
-     }
-   } else {
-    iTabuCutoff = 1;
-   }
+        iTabuCutoff = iVarLastChangeReset;
+      }
+    } else {
+      iTabuCutoff = 1;
+    }
   }
 
   /* look at all variables that appear in false clauses */
- if(bVarInFalse){
-  if(!bTabu){
-  for (j=0;j<iNumVarsInFalseList;j++) {
-    iVar = aVarInFalseList[j];
+  if (bVarInFalse) {
+    if (!bTabu) {
+      for (j = 0; j < iNumVarsInFalseList; j++) {
+        iVar = aVarInFalseList[j];
 
-    /* use cached value of breakcount - makecount */
-    switch(iScoringMeasure){
-    case 1: 
-    fScore = aBreakPenaltyFL[iVar] - aMakePenaltyFL[iVar];
+        /* use cached value of breakcount - makecount */
+        switch (iScoringMeasure) {
+          case 1:
+            fScore = aBreakPenaltyFL[iVar] - aMakePenaltyFL[iVar];
 
-    /* build candidate list of best vars */
+            /* build candidate list of best vars */
 
-    if (fScore <= fBestScore) {
-      if (fScore < fBestScore) {
-        iNumCandidates = 0;
-        fBestScore = fScore;
+            if (fScore <= fBestScore) {
+              if (fScore < fBestScore) {
+                iNumCandidates = 0;
+                fBestScore = fScore;
+              }
+              aCandidateList[iNumCandidates++] = iVar;
+            }
+
+            break;
+
+          case 2:
+            fScore = -aMakePenaltyFL[iVar];
+
+            /* build candidate list of best vars */
+
+            if (fScore <= fBestScore) {
+              if (fScore < fBestScore) {
+                iNumCandidates = 0;
+                fBestScore = fScore;
+              }
+              aCandidateList[iNumCandidates++] = iVar;
+            }
+
+            break;
+
+          case 3:
+            fScore = aBreakPenaltyFL[iVar] - aMakePenaltyFL[iVar];
+
+            /* build candidate list of best vars */
+
+            if (fScore <= fBestScore) {
+              if ((fScore < fBestScore) || (aVarLastChange[iVar] < aVarLastChange[*aCandidateList])) {
+                iNumCandidates = 0;
+                fBestScore = fScore;
+              }
+              aCandidateList[iNumCandidates++] = iVar;
+            }
+
+            break;
+        }
       }
-      aCandidateList[iNumCandidates++] = iVar;
     }
-  
-  break;
-  
-      case 2:
-    fScore = -aMakePenaltyFL[iVar];
+    else {//Tabu
+      for (j = 0; j < iNumVarsInFalseList; j++) {
+        iVar = aVarInFalseList[j];
 
-    /* build candidate list of best vars */
+        if (aVarLastChange[j] < iTabuCutoff) {
+          /* use cached value of breakcount - makecount */
+          switch (iScoringMeasure) {
+            case 1:
+              fScore = aBreakPenaltyFL[iVar] - aMakePenaltyFL[iVar];
 
-    if (fScore <= fBestScore) {
-      if (fScore < fBestScore) {
-        iNumCandidates = 0;
-        fBestScore = fScore;
+              /* build candidate list of best vars */
+
+              if (fScore <= fBestScore) {
+                if (fScore < fBestScore) {
+                  iNumCandidates = 0;
+                  fBestScore = fScore;
+                }
+                aCandidateList[iNumCandidates++] = iVar;
+              }
+
+              break;
+
+            case 2:
+              fScore = -aMakePenaltyFL[iVar];
+
+              /* build candidate list of best vars */
+
+              if (fScore <= fBestScore) {
+                if (fScore < fBestScore) {
+                  iNumCandidates = 0;
+                  fBestScore = fScore;
+                }
+                aCandidateList[iNumCandidates++] = iVar;
+              }
+
+              break;
+
+            case 3:
+              fScore = aBreakPenaltyFL[iVar] - aMakePenaltyFL[iVar];
+
+              /* build candidate list of best vars */
+
+              if (fScore <= fBestScore) {
+                if ((fScore < fBestScore) || (aVarLastChange[iVar] < aVarLastChange[*aCandidateList])) {
+                  iNumCandidates = 0;
+                  fBestScore = fScore;
+                }
+                aCandidateList[iNumCandidates++] = iVar;
+              }
+
+              break;
+          }
+        }
       }
-      aCandidateList[iNumCandidates++] = iVar;
-    }
-  
-  break;
-  
-      case 3:
-    fScore = aBreakPenaltyFL[iVar] - aMakePenaltyFL[iVar];
 
-    /* build candidate list of best vars */
 
-    if (fScore <= fBestScore) {
-     if ((fScore < fBestScore)||(aVarLastChange[iVar]<aVarLastChange[*aCandidateList])) {
-        iNumCandidates = 0;
-        fBestScore = fScore;
-      }
-      aCandidateList[iNumCandidates++] = iVar;
     }
- 
-  break;
   }
- } 
- }
- else{//Tabu
-   for (j=0;j<iNumVarsInFalseList;j++) {
-    iVar = aVarInFalseList[j];
-    
-    if (aVarLastChange[j] < iTabuCutoff) {
-    /* use cached value of breakcount - makecount */
-    switch(iScoringMeasure){
-    case 1:
-    fScore = aBreakPenaltyFL[iVar] - aMakePenaltyFL[iVar];
+  else {
+    if (!bTabu) {
+      for (j = 0; j < iNumVars; j++) {
+        iVar = j;
 
-    /* build candidate list of best vars */
+        /* use cached value of breakcount - makecount */
+        switch (iScoringMeasure) {
+          case 1:
+            fScore = aBreakPenaltyFL[iVar] - aMakePenaltyFL[iVar];
 
-    if (fScore <= fBestScore) {
-      if (fScore < fBestScore) {
-        iNumCandidates = 0;
-        fBestScore = fScore;
+            /* build candidate list of best vars */
+
+            if (fScore <= fBestScore) {
+              if (fScore < fBestScore) {
+                iNumCandidates = 0;
+                fBestScore = fScore;
+              }
+              aCandidateList[iNumCandidates++] = iVar;
+            }
+
+            break;
+
+          case 2:
+            fScore = -aMakePenaltyFL[iVar];
+
+            /* build candidate list of best vars */
+
+            if (fScore <= fBestScore) {
+              if (fScore < fBestScore) {
+                iNumCandidates = 0;
+                fBestScore = fScore;
+              }
+              aCandidateList[iNumCandidates++] = iVar;
+            }
+
+            break;
+
+          case 3:
+            fScore = aBreakPenaltyFL[iVar] - aMakePenaltyFL[iVar];
+
+            /* build candidate list of best vars */
+
+            if (fScore <= fBestScore) {
+              if ((fScore < fBestScore) || (aVarLastChange[iVar] < aVarLastChange[*aCandidateList])) {
+                iNumCandidates = 0;
+                fBestScore = fScore;
+              }
+              aCandidateList[iNumCandidates++] = iVar;
+            }
+
+            break;
+        }
       }
-      aCandidateList[iNumCandidates++] = iVar;
+    }
+    else {//Tabu
+      for (j = 0; j < iNumVars; j++) {
+        iVar = j;
+
+        if (aVarLastChange[j] < iTabuCutoff) {
+          /* use cached value of breakcount - makecount */
+          switch (iScoringMeasure) {
+            case 1:
+              fScore = aBreakPenaltyFL[iVar] - aMakePenaltyFL[iVar];
+
+              /* build candidate list of best vars */
+
+              if (fScore <= fBestScore) {
+                if (fScore < fBestScore) {
+                  iNumCandidates = 0;
+                  fBestScore = fScore;
+                }
+                aCandidateList[iNumCandidates++] = iVar;
+              }
+
+              break;
+
+            case 2:
+              fScore = -aMakePenaltyFL[iVar];
+
+              /* build candidate list of best vars */
+
+              if (fScore <= fBestScore) {
+                if (fScore < fBestScore) {
+                  iNumCandidates = 0;
+                  fBestScore = fScore;
+                }
+                aCandidateList[iNumCandidates++] = iVar;
+              }
+
+              break;
+
+            case 3:
+              fScore = aBreakPenaltyFL[iVar] - aMakePenaltyFL[iVar];
+
+              /* build candidate list of best vars */
+
+              if (fScore <= fBestScore) {
+                if ((fScore < fBestScore) || (aVarLastChange[iVar] < aVarLastChange[*aCandidateList])) {
+                  iNumCandidates = 0;
+                  fBestScore = fScore;
+                }
+                aCandidateList[iNumCandidates++] = iVar;
+              }
+
+              break;
+          }
+        }
+      }
+
+
     }
 
-  break;
 
-      case 2:
-    fScore = -aMakePenaltyFL[iVar];
-
-    /* build candidate list of best vars */
-
-    if (fScore <= fBestScore) {
-      if (fScore < fBestScore) {
-        iNumCandidates = 0;
-        fBestScore = fScore;
-      }
-      aCandidateList[iNumCandidates++] = iVar;
-    }
-
-  break;
-
-      case 3:
-    fScore = aBreakPenaltyFL[iVar] - aMakePenaltyFL[iVar];
-
-    /* build candidate list of best vars */
-
-    if (fScore <= fBestScore) {
-     if ((fScore < fBestScore)||(aVarLastChange[iVar]<aVarLastChange[*aCandidateList])) {
-        iNumCandidates = 0;
-        fBestScore = fScore;
-      }
-      aCandidateList[iNumCandidates++] = iVar;
-    }
-
-  break;
-   }
   }
- }
-
-
-}
-}
-else{
-  if(!bTabu){
-  for (j=0;j<iNumVars;j++) {
-    iVar = j;
-
-    /* use cached value of breakcount - makecount */
-    switch(iScoringMeasure){
-    case 1:
-    fScore = aBreakPenaltyFL[iVar] - aMakePenaltyFL[iVar];
-
-    /* build candidate list of best vars */
-
-    if (fScore <= fBestScore) {
-      if (fScore < fBestScore) {
-        iNumCandidates = 0;
-        fBestScore = fScore;
-      }
-      aCandidateList[iNumCandidates++] = iVar;
-    }
-
-  break;
-
-      case 2:
-    fScore = -aMakePenaltyFL[iVar];
-
-    /* build candidate list of best vars */
-
-    if (fScore <= fBestScore) {
-      if (fScore < fBestScore) {
-        iNumCandidates = 0;
-        fBestScore = fScore;
-      }
-      aCandidateList[iNumCandidates++] = iVar;
-    }
-
-  break;
-
-      case 3:
-    fScore = aBreakPenaltyFL[iVar] - aMakePenaltyFL[iVar];
-
-    /* build candidate list of best vars */
-
-    if (fScore <= fBestScore) {
-     if ((fScore < fBestScore)||(aVarLastChange[iVar]<aVarLastChange[*aCandidateList])) {
-        iNumCandidates = 0;
-        fBestScore = fScore;
-      }
-      aCandidateList[iNumCandidates++] = iVar;
-    }
-
-  break;
-  }
- }
- }
- else{//Tabu
-   for (j=0;j<iNumVars;j++) {
-    iVar = j;
-
-    if (aVarLastChange[j] < iTabuCutoff) {
-    /* use cached value of breakcount - makecount */
-    switch(iScoringMeasure){
-    case 1:
-    fScore = aBreakPenaltyFL[iVar] - aMakePenaltyFL[iVar];
-
-    /* build candidate list of best vars */
-
-    if (fScore <= fBestScore) {
-      if (fScore < fBestScore) {
-        iNumCandidates = 0;
-        fBestScore = fScore;
-      }
-      aCandidateList[iNumCandidates++] = iVar;
-    }
-
-  break;
-
-      case 2:
-    fScore = -aMakePenaltyFL[iVar];
-
-    /* build candidate list of best vars */
-
-    if (fScore <= fBestScore) {
-      if (fScore < fBestScore) {
-        iNumCandidates = 0;
-        fBestScore = fScore;
-      }
-      aCandidateList[iNumCandidates++] = iVar;
-    }
-
-  break;
-
-      case 3:
-    fScore = aBreakPenaltyFL[iVar] - aMakePenaltyFL[iVar];
-
-    /* build candidate list of best vars */
-
-    if (fScore <= fBestScore) {
-     if ((fScore < fBestScore)||(aVarLastChange[iVar]<aVarLastChange[*aCandidateList])) {
-        iNumCandidates = 0;
-        fBestScore = fScore;
-      }
-      aCandidateList[iNumCandidates++] = iVar;
-    }
-
-  break;
-   }
-  }
- }
-
-
-}
-
-
-}
   /* if bestScore is not below a threshold */
 
   if (fBestScore >= fPenaltyImprove) {
@@ -383,23 +382,23 @@ else{
       iFlipCandidate = 0;
     }
   } else {
-    
+
     /* select flip candidate uniformly from candidate list */
 
 //    iFlipCandidate = TieBreaking();
-     if (iNumCandidates > 1) {
-        iFlipCandidate = TieBreaking();
+    if (iNumCandidates > 1) {
+      iFlipCandidate = TieBreaking();
 
       //iFlipCandidate = aCandidateList[RandomInt(iNumCandidates)];
     } else {
       iFlipCandidate = *aCandidateList;
     }
-    
+
   }
 }
 
 void SmoothSAPS() {
-  
+
   FLOAT fAveragePenalty;
   UINT32 j;
 
@@ -417,7 +416,7 @@ void SmoothSAPS() {
   /* update cached values */
 
   fBasePenaltyFL += fAveragePenalty;
-    
+
   fTotalPenaltyFL += (fAveragePenalty * (FLOAT) iNumClauses);
 
   for (j=1;j<=iNumVars;j++) {
@@ -428,7 +427,7 @@ void SmoothSAPS() {
 }
 
 void AdjustPenalties() {
-  
+
   UINT32 j;
   UINT32 k;
   BOOL bReScale = FALSE;
@@ -445,7 +444,7 @@ void AdjustPenalties() {
       break;
     }
   }
-  
+
   if (bReScale) {
 
     fTotalPenaltyFL = 0;
@@ -487,7 +486,7 @@ void ScaleSAPS() {
   /* for each false clause, increae the clause penalty by alpha */
 
   for(j=0;j<iNumFalse;j++) {
-    
+
     iClause = aFalseList[j];
 
     fOld = aClausePenaltyFL[iClause];
@@ -526,13 +525,13 @@ void PostFlipSAPS() {
   AdjustPenalties();
 
   /* scale all unsatisfied clauses */
-  
+
   ScaleSAPS();
 
 }
 
 void SmoothSAPSWSmooth() {
-  
+
   UINT32 j;
   UINT32 k;
   FLOAT fOld;
@@ -540,7 +539,7 @@ void SmoothSAPSWSmooth() {
   LITTYPE *pLit;
 
   fTotalPenaltyFL = FLOATZERO;
- 
+
   for(j=0;j<iNumClauses;j++) {
 
   /* smooth penalties back towards original clause weights */
@@ -573,7 +572,7 @@ void PostFlipSAPSWSmooth() {
   }
 
   /* no call to AdjustPenalties() for WSmooth variant*/
-  
+
   ScaleSAPS();
 
 }
@@ -585,7 +584,7 @@ void InitRSAPS() {
 }
 
 void RSAPSAdaptSmooth() {
-  
+
   UINT32 iInvTheta = 6;
   FLOAT fDelta = 0.1f;
   FLOAT fProb;
@@ -625,7 +624,7 @@ void PostFlipRSAPS() {
     }
 
     AdjustPenalties();
-  
+
     ScaleSAPS();
 
   }
@@ -647,12 +646,12 @@ void PostFlipSAPSNR() {
   }
 
   AdjustPenalties();
-  
+
   ScaleSAPS();
 }
 
 void PickSAPSNR() {
-  
+
   UINT32 j;
   UINT32 iVar;
   FLOAT fScore;

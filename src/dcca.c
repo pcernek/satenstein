@@ -161,7 +161,8 @@ void UpdateCSchanged(UINT32 toggledClause, UINT32 exceptVar) {
 
 }
 
-void RemoveVarFromSet(UINT32 varToRemove, UINT32 *varSet, UINT32 *varSetPositions, UINT32 *pointerToSetSize) {
+void RemoveVarFromSet(UINT32 varToRemove, UINT32 *varSet, UINT32 *varSetPositions, UINT32 *pointerToSetSize)
+{
   UINT32 varPos = varSetPositions[ varToRemove ];
   UINT32 setSize = *pointerToSetSize;
 

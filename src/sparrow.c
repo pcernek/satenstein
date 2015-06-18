@@ -54,7 +54,7 @@ void AddSparrow() {
                             "Sparrow",
                             "Balint, Froehlich [SAT 10]",
                             "PickSparrow",
-                            "DefaultProcedures,FlipSparrow,SparrowPromVars,FalseClauseList,VarLastChange,PenClauseList,VarsShareClauses,CreateSparrowWeights,InitSparrow",
+                            "DefaultProcedures,FlipSparrow,DecPromVars,FalseClauseList,VarLastChange,ClausePen,ClausePenaltyINT,PenClauseList,VarsShareClauses,CreateSparrowWeights,InitSparrow,VarPenScore",
                             "default","default");
 
   AddParmProbability(&pCurAlg->parmList,"-ps","smooth probabilty [default %s]","after a scaling step, ~smooth penalties with probability PR","",&iPs,0.347);
@@ -66,12 +66,8 @@ void AddSparrow() {
   CreateTrigger("InitSparrow",PostRead,InitSparrow,"","");
 
   CreateTrigger("PickSparrow",ChooseCandidate,PickSparrow,"","");
-  CreateTrigger("FlipSparrow",FlipCandidate,FlipSparrow,"SparrowPromVars,FalseClauseList","DefaultFlip,UpdateFalseClauseList");
+  CreateTrigger("FlipSparrow",FlipCandidate,FlipSparrow,"DecPromVars,FalseClauseList","DefaultFlip,UpdateFalseClauseList,UpdateVarPenScore");
   CreateTrigger("CreateSparrowWeights",CreateStateInfo,CreateSparrowWeights,"","");
-
-  CreateTrigger("CreateSparrowPromVars",CreateStateInfo,CreateSparrowPromVars,"CreateSparrowScore","");
-  CreateTrigger("InitSparrowPromVars",InitStateInfo,InitSparrowPromVars,"InitSparrowScore","");
-  CreateContainerTrigger("SparrowPromVars","CreateSparrowPromVars,InitSparrowPromVars");
 
   CreateTrigger("CreateSparrowScore",CreateStateInfo,CreateSparrowScore,"CreateClausePenaltyINT","");
   CreateTrigger("InitSparrowScore",InitStateInfo,InitSparrowScore,"InitClausePenaltyINT","");
@@ -82,7 +78,7 @@ void AddSparrow() {
                             "Sparrow [SAT 11 Competition]",
                             "Balint, Froehlich [SAT 10]",
                             "PickSparrow,SparrowSat2011Settings",
-                            "DefaultProcedures,FlipSparrow,SparrowPromVars,FalseClauseList,VarLastChange,PenClauseList,VarsShareClauses,CreateSparrowWeights",
+                            "DefaultProcedures,FlipSparrow,DecPromVars,FalseClauseList,VarLastChange,PenClauseList,VarsShareClauses,CreateSparrowWeights",
                             "default","default");
 
   CreateTrigger("SparrowSat2011Settings",PostRead,SparrowSat2011Settings,"","");
@@ -120,6 +116,7 @@ void InitSparrow() {
 }
 
 void PickSparrow() {
+  bPen = TRUE;
 
   iFlipCandidate = 0;
 
@@ -177,7 +174,7 @@ void PickSparrowProbDist() {
 
     // note :: unlike in sparrow paper, negative score is "good"
 
-    iScoreAdjust = aVarScore[iVar];
+    iScoreAdjust = GetScore(iVar);
 
     if (iScoreAdjust > 10) {
       iScoreAdjust = 10;
@@ -212,6 +209,9 @@ void PickSparrowProbDist() {
   }
 }
 
+/**
+ * Decrease the clause weights of all SAT clauses by 1.
+ */
 void SmoothSparrow() {
 
   UINT32 j;
@@ -219,21 +219,33 @@ void SmoothSparrow() {
   UINT32 iClause;
   UINT32 iLoopMax;
 
-  iLoopMax = iNumPenClauseList;
+  /* Because iNumPenClauseList can change, keep track of # Initial Clauses in list */
+  iLoopMax = iNumPenClauses;
 
-  for (j=0;j<iLoopMax;j++) {
+  /* Decrement the penalties of all currently SAT clauses. */
+  for (j = 0; j < iLoopMax; j++) {
+
     iClause = aPenClauseList[j];
+
     if (aNumTrueLit[iClause] > 0) {
       aClausePenaltyINT[iClause]--;
       iTotalPenaltyINT--;
-      if (aClausePenaltyINT[iClause]==1) {
-        aPenClauseList[aPenClauseListPos[iClause]] = aPenClauseList[--iNumPenClauseList];
-        aPenClauseListPos[aPenClauseList[iNumPenClauseList]] = aPenClauseListPos[iClause];
+
+      /* If decrementing this clause's penalty causes the penalty to go down to 1,
+       *  this clause is no longer considered to be penalized. */
+      if (aClausePenaltyINT[iClause] == 1) {
+        RemoveFromList1(iClause, aPenClauseList, aPenClauseListPos, iNumPenClauses)
       }
-      if (aNumTrueLit[iClause]==1) {
+
+      /* If this clause has only 1 true literal, decrementing this clause's score
+       *  decreases the score of that literal's backing variable */
+      if (aNumTrueLit[iClause] == 1) {
         iVar = aCritSat[iClause];
-        aVarScore[iVar]--;
-        if ((!aIsDecPromVar[iVar]) && (aVarScore[iVar] < 0 ) && (aVarLastChange[iVar] < iStep - 1)) {
+        aVarPenScore[iVar]--;
+
+        /* Update decreasing promising variables. */
+        // TODO: Move this out of here for increased modularity, so that this function does not depend on aDecPromVars.
+        if ((!aIsDecPromVar[iVar]) && (aVarPenScore[iVar] < 0 ) && (aVarLastChange[iVar] < iStep - 1)) {
           aDecPromVarsList[iNumDecPromVars++] = iVar;
           aIsDecPromVar[iVar] = 1;
         }
@@ -250,22 +262,32 @@ void ScaleSparrow() {
   UINT32 iClause;
   LITTYPE *pLit;
 
+  /* Since we are about to increment the penalties of all unsatisfied clauses,
+   *  we can add that number to the sum of all clause penalties right away. */
   iTotalPenaltyINT += iNumFalse;
 
-  for(j=0;j<iNumFalse;j++) {
+  /* Increment the penalty of all unsatisfied clauses. */
+  for (j = 0; j < iNumFalse; j++) {
+
     iClause = aFalseList[j];
     aClausePenaltyINT[iClause]++;
-    if (aClausePenaltyINT[iClause]==2) {
-      aPenClauseList[iNumPenClauseList] = iClause;
-      aPenClauseListPos[iClause] = iNumPenClauseList++;
+
+    /* A clause penalty of 2 or greater earns this clause a spot on the list of penalized clauses. */
+    if (aClausePenaltyINT[iClause] == 2) {
+      AddToList1(iClause, aPenClauseList, aPenClauseListPos, iNumPenClauses)
     }
+
+    /* All variables in this clause have their scores decremented in accordance with the change in
+     *  clause penalty, for flipping any of these variables would make the clause SAT */
     pLit = pClauseLits[iClause];
-    for (k=0;k<aClauseLen[iClause];k++) {
+    for (k = 0; k < aClauseLen[iClause]; k++) {
       iVar = GetVarFromLit(*pLit);
-      aVarScore[iVar]--;
-      if ((!aIsDecPromVar[iVar]) && (aVarScore[iVar] < 0 ) && (aVarLastChange[iVar] < iStep - 1)) {
-        aDecPromVarsList[iNumDecPromVars++] = iVar;
-        aIsDecPromVar[iVar] = 1;
+      aVarPenScore[iVar]--;
+
+      /* Update decreasing promising variables. */
+      // TODO: Move this out of here for increased modularity, so that this function does not depend on aDecPromVars.
+      if ((!aIsDecPromVar[iVar]) && (aVarPenScore[iVar] < 0) && (aVarLastChange[iVar] < iStep - 1)) {
+        AddToList2(iVar, aDecPromVarsList, aDecPromVarsListPos, iNumDecPromVars, aIsDecPromVar)
       }
       pLit++;
     }
@@ -284,21 +306,14 @@ void FlipSparrow() {
 
   SINT32 iPenalty;
 
-  UINT32 *pShareVar;
+  UINT32 iNumNeighbor;
+  UINT32 *pNeighbor;
 
   if (iFlipCandidate == 0) {
     return;
   }
 
-  pShareVar = pVarsShareClause[iFlipCandidate];
-  for (j=0; j < aNumVarsShareClause[iFlipCandidate]; j++) {
-    if (aVarScore[*pShareVar] < 0) {
-      aIsDecPromVar[*pShareVar] = 1;
-    } else {
-      aIsDecPromVar[*pShareVar] = 0;
-    }
-    pShareVar++;
-  }
+  UpdateNeighborDecPromVarStatus();
 
   litWasTrue = GetTrueLit(iFlipCandidate);
   litWasFalse = GetFalseLit(iFlipCandidate);
@@ -314,12 +329,12 @@ void FlipSparrow() {
       aFalseList[iNumFalse] = *pClause;
       aFalseListPos[*pClause] = iNumFalse++;
 
-      aVarScore[iFlipCandidate] -= iPenalty;
+      aVarPenScore[iFlipCandidate] -= iPenalty;
 
       pLit = pClauseLits[*pClause];
       for (k=0;k<aClauseLen[*pClause];k++) {
         iVar = GetVarFromLit(*pLit);
-        aVarScore[iVar] -= iPenalty;
+        aVarPenScore[iVar] -= iPenalty;
 
         pLit++;
 
@@ -330,7 +345,7 @@ void FlipSparrow() {
       for (k=0;k<aClauseLen[*pClause];k++) {
         if (IsLitTrue(*pLit)) {
           iVar = GetVarFromLit(*pLit);
-          aVarScore[iVar] += iPenalty;
+          aVarPenScore[iVar] += iPenalty;
           aCritSat[*pClause] = iVar;
           break;
         }
@@ -352,51 +367,21 @@ void FlipSparrow() {
       pLit = pClauseLits[*pClause];
       for (k=0;k<aClauseLen[*pClause];k++) {
         iVar = GetVarFromLit(*pLit);
-        aVarScore[iVar] += iPenalty;
+        aVarPenScore[iVar] += iPenalty;
 
         pLit++;
 
       }
-      aVarScore[iFlipCandidate] += iPenalty;
+      aVarPenScore[iFlipCandidate] += iPenalty;
       aCritSat[*pClause] = iFlipCandidate;
     }
     if (aNumTrueLit[*pClause]==2) {
-      aVarScore[aCritSat[*pClause]] -= iPenalty;
+      aVarPenScore[aCritSat[*pClause]] -= iPenalty;
     }
     pClause++;
   }
 
-  pShareVar = pVarsShareClause[iFlipCandidate];
-  for (j = 0; j < aNumVarsShareClause[iFlipCandidate]; j++) {
-    if (aVarScore[*pShareVar] < 0) {
-      if (!aIsDecPromVar[*pShareVar]) {
-        aDecPromVarsList[iNumDecPromVars++] = *pShareVar;
-        aIsDecPromVar[*pShareVar] = 1;
-      }
-    }
-    pShareVar++;
-  }
-}
-
-void CreateSparrowPromVars() {
-  aDecPromVarsList = (UINT32 *) AllocateRAM((iNumVars+1) * sizeof(UINT32));
-  aIsDecPromVar = (BOOL *) AllocateRAM((iNumVars+1) * sizeof(BOOL));
-}
-
-void InitSparrowPromVars() {
-
-  UINT32 j;
-
-  iNumDecPromVars = 0;
-
-  for (j=1;j<=iNumVars;j++) {
-    if (aVarScore[j] < 0) {
-      aDecPromVarsList[iNumDecPromVars++] = j;
-      aIsDecPromVar[j] = 1;
-    } else {
-      aIsDecPromVar[j] = 0;
-    }
-  }
+  AddNeighboringDecPromVars();
 }
 
 void CreateSparrowWeights() {
@@ -404,7 +389,8 @@ void CreateSparrowWeights() {
 }
 
 void CreateSparrowScore() {
-  aVarScore = (SINT32 *) AllocateRAM((iNumVars+1)*sizeof(UINT32));
+  bPen = TRUE;
+  aVarPenScore = (SINT32 *) AllocateRAM((iNumVars+1)*sizeof(UINT32));
   aCritSat = (UINT32 *) AllocateRAM(iNumClauses*sizeof(UINT32));
 }
 
@@ -416,20 +402,20 @@ void InitSparrowScore() {
   LITTYPE *pLit;
 
   for (j=1;j<=iNumVars;j++) {
-    aVarScore[j] = 0;
+    aVarPenScore[j] = 0;
   }
 
   for (j=0;j<iNumClauses;j++) {
     if (aNumTrueLit[j]==0) {
       for (k=0;k<aClauseLen[j];k++) {
-        aVarScore[GetVar(j,k)] -= aClausePenaltyINT[j];
+        aVarPenScore[GetVar(j,k)] -= aClausePenaltyINT[j];
       }
     } else if (aNumTrueLit[j]==1) {
       pLit = pClauseLits[j];
       for (k=0;k<aClauseLen[j];k++) {
         if IsLitTrue(*pLit) {
           iVar = GetVarFromLit(*pLit);
-          aVarScore[iVar] += aClausePenaltyINT[j];
+          aVarPenScore[iVar] += aClausePenaltyINT[j];
           aCritSat[j] = iVar;
           break;
         }

@@ -17,23 +17,20 @@ extern FLOAT aSparrowPreCalc[11];
 
 extern FLOAT *aSparrowWeights;
 
-extern BOOL bUseSparrowDefaults;
 
-
-void PickSparrowProbDist();
 
 void CreateSparrowWeights();
 void InitSparrow();
 
+void PickSparrowProbDist();
+
 void ScaleSparrow();
 void SmoothSparrow();
-void FlipSparrow();
 
 /******** standalone sparrow ********/
 void PickSparrow();
+void FlipSparrow();
 
-void CreateSparrowPromVars();
-void InitSparrowPromVars();
 void SparrowSat2011Settings();
 
 void CreateSparrowScore();

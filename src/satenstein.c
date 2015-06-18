@@ -167,7 +167,7 @@ void AddSatenstein() {
   AddParmUInt(&pCurAlg->parmList, "-scoringmeasure", "Scoring measure [default %s]",
               "selects among a list of available scoring measures", "", &iScoringMeasure, 1);
   AddParmUInt(&pCurAlg->parmList, "-smoothingscheme", "Smoothing scheme [default %s]",
-              "selects among a list of smoothingscheme", "", &iSmoothingScheme, 1);
+              "selects among a list of smoothingscheme", "", &iSmoothingScheme, SMOOTH_SAPS);
   AddParmUInt(&pCurAlg->parmList, "-decreasingvariable", "Decreasing variable selection choice [default %s]",
               "selects among a list of available options for selecting a decreasing variable", "", &iDecStrategy, 2);
   AddParmUInt(&pCurAlg->parmList, "-phi", "Parameter for adaptive tuning [default %s]", "parameter for adaptive tuning",
@@ -338,17 +338,17 @@ void EnableDisableTrigger() {
 
   }
 
-/*SAPS and PAWS need some disjoint set of triggers that other algorithms don't need
+  /*SAPS and PAWS need some disjoint set of triggers that other algorithms don't need
   so they are treated separately. */
   if (bPen && (!bPromisingList) && (!bSingleClause)) {
     DeActivateTriggers("SpecialUpdate,SpecialUpdateMakeBreak");
-    if (iSmoothingScheme == 2) {
+    if (iSmoothingScheme == SMOOTH_PAWS) {
 
       ActivateTriggers("VarInFalse,MakeBreak,Flip+TrackChanges+FCL,PostFlipPAWS");
       DeActivateTriggers("Flip+FalseClauseList,Flip+MBPFL+FCL+VIF,PostFlipSAPS,PostFlipRSAPS");
     }
 
-    if (iSmoothingScheme == 1) {
+    if (iSmoothingScheme == SMOOTH_SAPS) {
       ActivateTriggers("VarInFalse,MakeBreak,Flip+TrackChanges+FCL");
       DeActivateTriggers("Flip+FalseClauseList,,Flip+MBPINT+FCL+VIF,PostFlipPAWS");
       if (bNoise) {
@@ -361,12 +361,10 @@ void EnableDisableTrigger() {
   }
   else {
 
-    /*
-     * TODO: Trigger "PenClauseList" has been temporarily removed from the list of triggers to deactivate, below,
-     *        so that Sparrow may work. Fix the logic of handling Sparrow smoothing so that this changed can be
-     *        reverted.
-     */
     DeActivateTriggers("Flip+MBPINT+FCL+VIF,PostFlipPAWS,Flip+MBPFL+FCL+VIF,PostFlipSAPS,PostFlipRSAPS");
+    if (iDecStrategy != PICK_GNOVELTYPLUS && iHeuristic != H_PICK_SPARROWPROBDIST) {
+      DeActivateTriggers("PenClauseList");
+    }
 
     if ((!bSingleClause && !bPen && !bPromisingList) || ((bPerformRandomWalk) && (iRandomStep == 2))) {
       if (((bPerformRandomWalk) && (iRandomStep == 2)) || (bVarInFalse)) {
@@ -390,7 +388,7 @@ void EnableDisableTrigger() {
     DeActivateTriggers("FlipCounts");
   }
 
-  if (bPen && (bPromisingList || bSingleClause) && (iSmoothingScheme == 2)) {
+  if (bPen && (bPromisingList || bSingleClause) && (iSmoothingScheme == SMOOTH_PAWS)) {
     bNotThreeSat = FALSE;
     for (j = 0; j < iNumClauses; j++) {
       if (aClauseLen[j] != 3) {
@@ -421,7 +419,8 @@ void EnableDisableTrigger() {
     ActivateTriggers("ClauseVarFlipCounts");
   }
   else {
-    DeActivateTriggers("ClauseVarFlipCounts");
+    // TODO: This is a temporary measure, because ClauseVarFlipCounts are apparently a key part of our Flipping scheme
+//    DeActivateTriggers("ClauseVarFlipCounts");
   }
 
   /**
@@ -440,12 +439,12 @@ void EnableDisableTrigger() {
   }
 
   if (iHeuristic == H_PICK_SPARROWPROBDIST) {
-    ActivateTriggers("InitSparrow,CreateSparrowWeights,PenClauseList,FlipSparrow");
-    DeActivateTriggers("UpdateDecPromVars,Flip+TrackChanges+FCL,SparrowPromVars");
-    // TODO: finish handling sparrow probability distribution
+    ActivateTriggers("InitSparrow,CreateSparrowWeights,PenClauseList,TrackPenChanges");
+    DeActivateTriggers("UpdateDecPromVars");
   }
 
   if (bPromisingList && iDecStrategy == PICK_GNOVELTYPLUS) {
+    iUpdateSchemePromList = UPDATE_GNOVELTYPLUS;
     ActivateTriggers("UpdateVarLastChange");
     DeActivateTriggers("UpdateDecPromVars");
   }
@@ -468,8 +467,6 @@ void PickSatenstein() {
     }
   }
 
-  bPerformNovelty = TRUE;
-
   if (bPerformRandomWalk) {
     PerformRandomWalk();
   }
@@ -479,55 +476,47 @@ void PickSatenstein() {
   }
 
   if (bPromisingList) {
-    bPerformNovelty = TRUE;
 
     if (iNumDecPromVars > 0) {
       PerformPickPromisingVar();
     }
 
-    if (iNumDecPromVars > 0) {
-      bPerformNovelty = FALSE;
+    if (iFlipCandidate != 0) {
+      return;
     }
 
-    if (bPerformNovelty) {
-      if (bPen) {
-        if (iPs != -1) {
-          UpdateClauseWeight();
-          if (RandomProb(iPs))
-            Smooth();
+    if (iHeuristic != H_PICK_SPARROWPROBDIST) {
+      if (bPen && iPs != -1) {
+        UpdateClauseWeight();
+        if (RandomProb(iPs)) {
+          Smooth();
         }
       }
-
-      PerformHeuristic();
     }
+
+    PerformHeuristic();
+  }
+
+  else if (bSingleClause) {
+    if (bPen && iPs != -1) {
+        UpdateClauseWeight();
+        if (RandomProb(iPs))
+          Smooth();
+      }
+
+    PerformHeuristic();
   }
 
   else {
-    if (bSingleClause) {
-      if (bPen) {
-        if (iPs != -1) {
-          UpdateClauseWeight();
-          if (RandomProb(iPs))
-            Smooth();
-        }
-      }
 
-      bPerformNovelty = TRUE;
-
-      PerformHeuristic();
+    if (bPen) {
+      PerformSmoothing();
     }
-
+    // TODO: This last part of the function should probably not be in an else block. Verify with Ashique.
     else {
-
-      if (bPen) {
-        PerformSmoothing();
-      }
-      else {
-        // This part of code is never executed in our implementation for the paper
-        // I will make a cleaner version by removing it.
-        PerformScoringMeasure();
-      }
-
+      // This part of code is never executed in our implementation for the paper
+      // I will make a cleaner version by removing it.
+      PerformScoringMeasure();
     }
 
   }
@@ -536,11 +525,11 @@ void PickSatenstein() {
 void PerformSmoothing() {
   switch (iSmoothingScheme) {
 
-    case 1:
+    case SMOOTH_SAPS:
       PickSAPS();
       break;
 
-    case 2:
+    case SMOOTH_PAWS:
       PickPAWS();
       break;
 
@@ -866,7 +855,6 @@ void PerformRandomWalk() {
             iClauseLen = aClauseLen[iClause];
             litPick = (pClauseLits[iClause][RandomInt(iClauseLen)]);
             iFlipCandidate = GetVarFromLit(litPick);
-            bPerformNovelty = FALSE;
           } else {
             iFlipCandidate = 0;
           }
@@ -878,7 +866,6 @@ void PerformRandomWalk() {
         if (RandomProb(iRWpWalk)) {
           if (iNumVarsInFalseList) {
             iFlipCandidate = aVarInFalseList[RandomInt(iNumVarsInFalseList)];
-            bPerformNovelty = FALSE;
           } else {
             iFlipCandidate = 0;
           }
@@ -908,7 +895,6 @@ void PerformRandomWalk() {
               }
               pLit++;
             }
-            bPerformNovelty = FALSE;
           } else {
             iFlipCandidate = 0;
           }
@@ -940,7 +926,6 @@ void PerformRandomWalk() {
           } else {
             iFlipCandidate = 0;
           }
-          bPerformNovelty = FALSE;
         }
         break;
 
@@ -968,7 +953,6 @@ void PerformRandomWalk() {
           } else {
             iFlipCandidate = 0;
           }
-          bPerformNovelty = FALSE;
         }
         break;
 
@@ -1526,11 +1510,10 @@ void PerformHeuristic() {
     case H_PICK_SPARROWPROBDIST:
       PickSparrowProbDist();
 
-      if (bPromisingList) {
+      if (bPromisingList && bPen) {
+        ScaleSparrow();
         if (RandomProb(iPs)) {
           SmoothSparrow();
-        } else {
-          ScaleSparrow();
         }
       }
 
@@ -1816,17 +1799,20 @@ void Smooth() {
   register UINT32 iClause, iVar;
   UINT32 iClauseLen;
   UINT32 iStartNumWeighted;
+
   iStartNumWeighted = iNumWeighted;
   iTotalWeight -= iNumWeighted;
+
   for (j = 0; j < iStartNumWeighted; j++) {
 
     iClause = aWeightedList[j];
+
     if (--aClausePen[iClause] == 1) {
       --iNumWeighted;
       aWeightedList[aWhereWeight[iClause]] = aWeightedList[iNumWeighted];
       aWhereWeight[aWeightedList[iNumWeighted]] = aWhereWeight[iClause];
-
     }
+
     if (aNumTrueLit[iClause] == 0) {
       --iSumFalsePen;
       iClauseLen = aClauseLen[iClause];

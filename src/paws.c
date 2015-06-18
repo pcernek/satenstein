@@ -35,7 +35,7 @@ void InitPenClauseList();
 
 UINT32 *aPenClauseList;
 UINT32 *aPenClauseListPos;
-UINT32 iNumPenClauseList;
+UINT32 iNumPenClauses;
 
 void CreatePenClauseList() {
   aPenClauseList = AllocateRAM(iNumClauses*sizeof(UINT32));
@@ -43,7 +43,7 @@ void CreatePenClauseList() {
 }
 
 void InitPenClauseList() {
-  iNumPenClauseList = 0;
+  iNumPenClauses = 0;
   iPawsSmoothCounter = 0;
 }
 
@@ -529,20 +529,34 @@ void SmoothPAWS() {
   UINT32 iLoopMax;
   LITTYPE *pLit;
 
-  iLoopMax = iNumPenClauseList;
+  /* Because iNumPenClauseList can change, keep track of # Initial Clauses in list */
 
-  iTotalPenaltyINT -= iNumPenClauseList;
+  iLoopMax = iNumPenClauses;
+
+  /* Each clause penalty is going down by one, so total is going down by # clauses */
+
+  iTotalPenaltyINT -= iNumPenClauses;
 
   for (j=0;j<iLoopMax;j++) {
     
     iClause = aPenClauseList[j];
 
+    /* decrease the clause penalty by one */
+
     aClausePenaltyINT[iClause]--;
 
+    /* if clause penalty is equal to one, remove it from the list of penalized clauses. */
+
+    /* Note that moving the 'last' penalty to the current location j
+       doesn't prevent that other penalty from being adjusted as j loops
+       all the way to iLoopMax */
+
     if (aClausePenaltyINT[iClause]==1) {
-      aPenClauseList[aPenClauseListPos[iClause]] = aPenClauseList[--iNumPenClauseList];
-      aPenClauseListPos[aPenClauseList[iNumPenClauseList]] = aPenClauseListPos[iClause];
+      RemoveFromList1(iClause, aPenClauseList, aPenClauseListPos, iNumPenClauses)
     }
+
+    /* For all false clauses, the 'make' score for each variable in the clause
+       has to be reduced by one */
 
     if (aNumTrueLit[iClause]==0) { 
       pLit = pClauseLits[iClause];
@@ -551,7 +565,12 @@ void SmoothPAWS() {
         pLit++;
       }
     }
+
+    /* For critically satisfied clauses, the 'break' score for that critical variable
+       has to be reduced by one */
+
     if (aNumTrueLit[iClause]==1) {
+      // aCritSat[iClause] returns the critical variable for this clause
       aBreakPenaltyINT[aCritSat[iClause]]--;
     }
   }
@@ -575,8 +594,8 @@ void ScalePAWS() {
 
     if (aClausePenaltyINT[iClause]==2) {
 
-      aPenClauseList[iNumPenClauseList] = iClause;
-      aPenClauseListPos[iClause] = iNumPenClauseList++;
+      aPenClauseList[iNumPenClauses] = iClause;
+      aPenClauseListPos[iClause] = iNumPenClauses++;
 
     }
 

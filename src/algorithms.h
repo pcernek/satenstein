@@ -151,7 +151,7 @@ extern PROBABILITY iPAWSFlatMove;
 extern UINT32 iPAWSMaxInc;
 extern UINT32 *aPenClauseList;
 extern UINT32 *aPenClauseListPos;
-extern UINT32 iNumPenClauseList;
+extern UINT32 iNumPenClauses;
 
 
 /* ddfw.c */

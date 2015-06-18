@@ -26,6 +26,56 @@
 #include "ubcsat-types.h"
 #include "ubcsat-lit.h"
 
+#define GetScore(var) (bPen ? aVarPenScore[var] : aVarScore[var])
+
+#define SetScore(var, score) { \
+  if (bPen) { \
+    aVarScore[var] = score;\
+  } else { \
+    aVarPenScore[var] = score; \
+  }\
+}
+
+#define RemoveFromList1(item, list, listPositions, listSize) { \
+  list[listPositions[item]] = list[--listSize]; \
+  listPositions[list[listSize]] = listPositions[item]; \
+}
+#define RemoveFromList2(item, list, listPositions, listSize, listMemberships) { \
+  if (listMemberships[item]) { \
+    list[listPositions[item]] = list[--listSize]; \
+    listPositions[list[listSize]] = listPositions[item]; \
+    listMemberships[item] = FALSE; \
+  } \
+}
+
+#define AddToList1(item, list, listPositions, listSize) { \
+  list[listSize] = item; \
+  listPositions[item] = listSize++; \
+}
+#define AddToList2(item, list, listPositions, listSize, listMemberships) { \
+  if (!listMemberships[item]) { \
+    list[listSize] = item; \
+    listPositions[item] = listSize++; \
+    listMemberships[item] = TRUE; \
+  } \
+}
+
+#define UpdatePromVars() {\
+    if ((!aIsDecPromVar[iVar]) && (aVarScore[iVar] < 0 ) && (aVarLastChange[iVar] < iStep - 1)) \
+    { \
+        aDecPromVarsList[iNumDecPromVars++] = iVar; \
+        aIsDecPromVar[iVar] = TRUE; \
+    } \
+}
+
+#define UpdateChange(var) { \
+  if (aStepOfPrevVarScore[var] != iStep) { \
+    aPrevVarScore[var] = bPen ? aVarPenScore[var] : aVarScore[var]; \
+    aStepOfPrevVarScore[var] = iStep; \
+    aChangeList[iNumChanges++] = var; \
+  } \
+}
+
 void AddDataTriggers();
 
 
@@ -186,14 +236,15 @@ extern UINT32 iVarLastChangeReset;
 /*
     iNumChanges           # of changes to aVarScore[] values this step
     aChangeList[j]        variable # of the jth variable changed this step
-    aChangeOldScore[j]    the previous score of variable[j]
-    aChangeLastStep[j]    the step of the last change for variable[j]
+    aPrevVarScore[j]    the previous score of variable[j]
+    aStepOfPrevVarScore[j]    the step of the last change for variable[j]
 */
 
 extern UINT32 iNumChanges;
 extern UINT32 *aChangeList;
-extern SINT32 *aChangeOldScore;
-extern UINT32 *aChangeLastStep;
+extern SINT32 *aPrevVarScore;
+extern UINT32 *aStepOfPrevVarScore;
+extern BOOL   *aHasChangedThisStep;
 
 extern UINT32 iNumChangesW;
 extern UINT32 *aChangeListW;
@@ -218,6 +269,9 @@ UINT32 iNumDecPromVars;
 
 bool isDecreasing(UINT32 var);
 void PickGNoveltyPlusProm();
+void PickGNoveltyPlusPromPen();
+void UpdateNeighborDecPromVarStatus();
+void AddNeighboringDecPromVars();
 
 /***** Trigger BestScoreList *****/
 /*
@@ -275,8 +329,8 @@ extern UINT32 iTotalPenaltyINT;
 
 /***** Trigger MakeBreakPenaltyINT *****/
 /*
-    aMakePenaltyINT[j]       (same as aMakeCount, but as a sum of dynaimc clause penalties)  
-    aBreakPenaltyINT[j]      (same as aBreakCount, but as a sum of dynaimc clause penalties)  
+    aMakePenaltyINT[j]       (same as aMakeCount, but as a sum of dynamic clause penalties)
+    aBreakPenaltyINT[j]      (same as aBreakCount, but as a sum of dynamic clause penalties)
 */
 
 extern UINT32 *aMakePenaltyINT;
@@ -659,7 +713,6 @@ extern BOOL *aIsDecPromVar;
 extern UINT32 iNumWeighted;
 extern UINT32 *aWeightedList;
 extern UINT32 *aWhereWeight;
-extern BOOL bPerformNovelty;
 
 extern SINT32 *aVarPenScore;
 extern UINT32 *aClausePen;

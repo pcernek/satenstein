@@ -119,9 +119,6 @@ void InitAdaptNoveltyPlusNoise() {
 }
 
 void AdaptNoveltyPlusNoise() {
-  if(iAdaptiveNoiseScheme ==1 && bPerformNovelty &&bPromisingList)
-   {   //return;
-   }
   if (iStep-iLastAdaptStep > iNumClauses/iInvTheta) {
     //if (iStep-iLastAdaptStep > iNumClauses*0.2f) {
     /* if no improvement in a while, increase noise */

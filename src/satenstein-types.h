@@ -50,4 +50,9 @@ typedef enum {
   H_PICK_SPARROWPROBDIST // 19
 } Heuristic;
 
+typedef enum {
+  SMOOTH_SAPS = 1,
+  SMOOTH_PAWS,
+} SmoothingScheme;
+
 #endif //SATENSTEIN_SATENSTEIN_TYPES_H

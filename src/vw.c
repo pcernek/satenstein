@@ -222,7 +222,7 @@ void PickVW1() {
     else {
         for (i=0;i<iNumOcc;i++) {
       if (aNumTrueLit[*pClause]==1) {
-        iScore+= aClausePen[*pClause];
+        iScore+= aClausePenaltyINT[*pClause];
       }
       pClause++;
     }
@@ -337,7 +337,7 @@ void PickVW2() {
     else {
         for (i=0;i<iNumOcc;i++) {
       if (aNumTrueLit[*pClause]==1) {
-        iScore+= aClausePen[*pClause];
+        iScore+= aClausePenaltyINT[*pClause];
       }
       pClause++;
     }
@@ -686,7 +686,7 @@ void PickVW1Tabu()
     else {
         for (i=0;i<iNumOcc;i++) {
       if (aNumTrueLit[*pClause]==1) {
-        iScore+= aClausePen[*pClause];
+        iScore+= aClausePenaltyINT[*pClause];
       }
       pClause++;
     }
@@ -822,7 +822,7 @@ void PickVW2Tabu() {
     else {
         for (i=0;i<iNumOcc;i++) {
       if (aNumTrueLit[*pClause]==1) {
-        iScore+= aClausePen[*pClause];
+        iScore+= aClausePenaltyINT[*pClause];
       }
       pClause++;
     }
@@ -963,7 +963,7 @@ void PickVW2Automated() {
   else {
     for (i = 0; i < iNumOcc; i++) {
       if (aNumTrueLit[*pClause] == 1) {
-        BestB += aClausePen[*pClause];
+        BestB += aClausePenaltyINT[*pClause];
         // POSSIBLE TODO: EARLY EXIT IF FREEBIE WAS PREVIOUSLY FOUND?
       }
       pClause++;
@@ -1014,7 +1014,7 @@ void PickVW2Automated() {
     else {
       for (i = 0; i < iNumOcc; i++) {
         if (aNumTrueLit[*pClause] == 1) {
-          B += aClausePen[*pClause];
+          B += aClausePenaltyINT[*pClause];
           // POSSIBLE TODO: EARLY EXIT IF FREEBIE WAS PREVIOUSLY FOUND?
         }
         pClause++;

@@ -54,7 +54,7 @@ void AddSparrow() {
                             "Sparrow",
                             "Balint, Froehlich [SAT 10]",
                             "PickSparrow",
-                            "DefaultProcedures,FlipSparrow,DecPromVars,FalseClauseList,VarLastChange,ClausePen,ClausePenaltyINT,PenClauseList,VarsShareClauses,CreateSparrowWeights,InitSparrow,VarPenScore",
+                            "DefaultProcedures,FlipSparrow,DecPromVars,FalseClauseList,VarLastChange,ClausePenaltyINT,PenClauseList,VarsShareClauses,CreateSparrowWeights,InitSparrow,VarPenScore",
                             "default","default");
 
   AddParmProbability(&pCurAlg->parmList,"-ps","smooth probabilty [default %s]","after a scaling step, ~smooth penalties with probability PR","",&iPs,0.347);
@@ -78,7 +78,7 @@ void AddSparrow() {
                             "Sparrow [SAT 11 Competition]",
                             "Balint, Froehlich [SAT 10]",
                             "PickSparrow,SparrowSat2011Settings",
-                            "DefaultProcedures,FlipSparrow,DecPromVars,FalseClauseList,VarLastChange,PenClauseList,VarsShareClauses,CreateSparrowWeights",
+                            "DefaultProcedures,FlipSparrow,DecPromVars,FalseClauseList,VarLastChange,ClausePenaltyINT,PenClauseList,VarsShareClauses,CreateSparrowWeights,VarPenScore",
                             "default","default");
 
   CreateTrigger("SparrowSat2011Settings",PostRead,SparrowSat2011Settings,"","");

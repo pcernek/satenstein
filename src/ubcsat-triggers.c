@@ -157,11 +157,6 @@ void InitWeightedList();
 UINT32 iNumWeighted;
 UINT32 *aWeightedList;
 UINT32 *aWhereWeight;
-BOOL bPerformNovelty;
-
-
-void CreateClausePen();
-void InitClausePen();
 
 
 void FlipVarScore();
@@ -174,8 +169,6 @@ SINT32 *aVarScore;
 FLOAT *aVarScoreW;
 
 SINT32 *aVarPenScore;
-UINT32 *aClausePen;
-
 
 /***** Trigger MakeBreak[W] *****/
 /***** Trigger Flip+MakeBreak[W] *****/
@@ -829,10 +822,6 @@ void AddDataTriggers() {
   CreateTrigger("Flip+MBPINT+FCL+VIF",FlipCandidate,FlipMBPINTandFCLandVIF,"MakeBreakPenaltyINT,FalseClauseList,VarInFalse","DefaultFlip,UpdateMakeBreakPenaltyINT,UpdateFalseClauseList,UpdateVarInFalse");
   CreateTrigger("Flip+MBPINT+FCL+VIF+W",FlipCandidate,FlipMBPINTandFCLandVIFandW,"MakeBreakPenaltyINT,FalseClauseList,VarInFalse","DefaultFlipW,UpdateMakeBreakPenaltyINT,UpdateFalseClauseList,UpdateVarInFalse");
 
-  CreateTrigger("CreateClausePen",CreateStateInfo,CreateClausePen,"","");
-  CreateTrigger("InitClausePen",InitStateInfo,InitClausePen,"","");
-  CreateContainerTrigger("ClausePen","CreateClausePen,InitClausePen");
-
   CreateTrigger("CreateWeightedList",CreateStateInfo,CreateWeightedList,"","");
   CreateTrigger("InitWeightedList",InitStateInfo,InitWeightedList,"","");
   CreateContainerTrigger("WeightedList","CreateWeightedList,InitWeightedList");
@@ -1367,7 +1356,7 @@ void InitDefaultStateInfo() {
     iSumFalsePen = 0;
     for (j=0;j<iNumClauses;j++) {
       if (aNumTrueLit[j]==0) {
-        iSumFalsePen += aClausePen[j];
+        iSumFalsePen += aClausePenaltyINT[j];
       }
     }
  }
@@ -5169,79 +5158,6 @@ void InitTrackPenChanges() {
   InitTrackChanges();
 }
 
-void UpdateTrackPenChanges() {
-  UINT32 j;
-  UINT32 k;
-  UINT32 *pClause;
-  UINT32 iVar;
-  LITTYPE litWasTrue;
-  LITTYPE litWasFalse;
-  LITTYPE *pLit;
-
-  if (iFlipCandidate == 0) {
-    return;
-  }
-
-  iNumChanges = 0;
-
-  litWasTrue = GetFalseLit(iFlipCandidate);
-  litWasFalse = GetTrueLit(iFlipCandidate);
-
-  pClause = pLitClause[litWasTrue];
-  for (j=0;j<aNumLitOcc[litWasTrue];j++) {
-    if (aNumTrueLit[*pClause]==0) {
-
-      UpdateChange(iFlipCandidate);
-      aVarPenScore[iFlipCandidate] -= aClausePen[*pClause];
-
-      pLit = pClauseLits[*pClause];
-      for (k=0;k<aClauseLen[*pClause];k++) {
-        iVar = GetVarFromLit(*pLit);
-        UpdateChange(iVar);
-        aVarPenScore[iVar] -= aClausePen[*pClause];
-        pLit++;
-      }
-    }
-    if (aNumTrueLit[*pClause]==1) {
-      pLit = pClauseLits[*pClause];
-      for (k=0;k<aClauseLen[*pClause];k++) {
-        if (IsLitTrue(*pLit)) {
-          iVar = GetVarFromLit(*pLit);
-          UpdateChange(iVar);
-          aVarPenScore[iVar] += aClausePen[*pClause];
-          aCritSat[*pClause] = iVar;
-          break;
-        }
-        pLit++;
-      }
-    }
-    pClause++;
-  }
-
-  pClause = pLitClause[litWasFalse];
-  for (j=0;j<aNumLitOcc[litWasFalse];j++) {
-    if (aNumTrueLit[*pClause]==1) {
-
-      pLit = pClauseLits[*pClause];
-      for (k=0;k<aClauseLen[*pClause];k++) {
-        iVar = GetVarFromLit(*pLit);
-        UpdateChange(iVar);
-        aVarPenScore[iVar] += aClausePen[*pClause];
-        pLit++;
-      }
-      UpdateChange(iFlipCandidate);
-      aVarPenScore[iFlipCandidate] += aClausePen[*pClause];
-      aCritSat[*pClause] = iFlipCandidate;
-    }
-    if (aNumTrueLit[*pClause]==2) {
-      iVar = aCritSat[*pClause];
-      UpdateChange(iVar);
-      aVarPenScore[iVar] -= aClausePen[*pClause];
-    }
-    pClause++;
-  }
-}
-
 
 void CreateVarPenScore() {
   aVarPenScore = AllocateRAM((iNumVars+1)*sizeof(SINT32));
@@ -5281,8 +5197,6 @@ void InitVarPenScore() {
 }
 
 
-
-
 void UpdateVarPenScore() {
 
   UINT32 j;
@@ -5302,11 +5216,11 @@ void UpdateVarPenScore() {
   for (j=0;j<aNumLitOcc[litWasTrue];j++) {
     if (aNumTrueLit[*pClause]==0) {
 
-      aVarPenScore[iFlipCandidate] -= aClausePen[*pClause];
+      aVarPenScore[iFlipCandidate] -= aClausePenaltyINT[*pClause];
 
       pLit = pClauseLits[*pClause];
       for (k=0;k<aClauseLen[*pClause];k++) {
-        aVarPenScore[GetVarFromLit(*pLit)] -= aClausePen[*pClause];
+        aVarPenScore[GetVarFromLit(*pLit)] -= aClausePenaltyINT[*pClause];
         pLit++;
       }
     }
@@ -5315,7 +5229,7 @@ void UpdateVarPenScore() {
       for (k=0;k<aClauseLen[*pClause];k++) {
         if (IsLitTrue(*pLit)) {
           iVar = GetVarFromLit(*pLit);
-          aVarPenScore[iVar] += aClausePen[*pClause];
+          aVarPenScore[iVar] += aClausePenaltyINT[*pClause];
           aCritSat[*pClause] = iVar;
           break;
         }
@@ -5331,37 +5245,18 @@ void UpdateVarPenScore() {
       pLit = pClauseLits[*pClause];
       for (k=0;k<aClauseLen[*pClause];k++) {
         iVar = GetVarFromLit(*pLit);
-        aVarPenScore[iVar] += aClausePen[*pClause];
+        aVarPenScore[iVar] += aClausePenaltyINT[*pClause];
         pLit++;
       }
-      aVarPenScore[iFlipCandidate] += aClausePen[*pClause];
+      aVarPenScore[iFlipCandidate] += aClausePenaltyINT[*pClause];
       aCritSat[*pClause] = iFlipCandidate;
     }
     if (aNumTrueLit[*pClause]==2) {
-      aVarPenScore[aCritSat[*pClause]] -= aClausePen[*pClause];
+      aVarPenScore[aCritSat[*pClause]] -= aClausePenaltyINT[*pClause];
     }
     pClause++;
   }
 }
-
-void CreateClausePen()
-{
- int i;
- aClausePen = AllocateRAM((iNumClauses+1)*sizeof(UINT32));
- for(i=0;i<iNumClauses+1;i++){
- aClausePen[i] = 1;
- }
-
- iTotalWeight = iNumClauses;
-}
-
-void InitClausePen()
-{
-//Initializing takes place in CreateClausePen
-}
-  
-
-
 
 void FlipTrackChangesFCLPen() {
   /* TODO: The array that keeps track of clause penalties in this function was changed

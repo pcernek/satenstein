@@ -394,7 +394,7 @@ void PickNovelty() {
       pClause = pLitClause[*pLit];
       for (i = 0; i < iNumOcc; i++) {
         if (aNumTrueLit[*pClause] == 0) {
-          iScore -= aClausePen[*pClause];
+          iScore -= aClausePenaltyINT[*pClause];
           iScoreWithoutPen--;
         }
         pClause++;
@@ -405,7 +405,7 @@ void PickNovelty() {
 
       for (i = 0; i < iNumOcc; i++) {
         if (aNumTrueLit[*pClause] == 1) {
-          iScore += aClausePen[*pClause];
+          iScore += aClausePenaltyINT[*pClause];
           iScoreWithoutPen++;
         }
         pClause++;
@@ -1059,7 +1059,7 @@ void PickNoveltyPlusPlusPrime() {
         pClause = pLitClause[*pLit];
         for (i=0;i<iNumOcc;i++) {
          if (aNumTrueLit[*pClause]==0) {
-          iScore -= aClausePen[*pClause];
+          iScore -= aClausePenaltyINT[*pClause];
           iScoreWithoutPen--;
          }
         pClause++;
@@ -1070,7 +1070,7 @@ void PickNoveltyPlusPlusPrime() {
 
     for (i=0;i<iNumOcc;i++) {
       if (aNumTrueLit[*pClause]==1) {
-        iScore+= aClausePen[*pClause];
+        iScore+= aClausePenaltyINT[*pClause];
         iScoreWithoutPen++;
       }
       pClause++;
@@ -1984,7 +1984,7 @@ void PickNoveltyTabu()
       pClause = pLitClause[*pLit];
       for (i = 0; i < iNumOcc; i++) {
         if (aNumTrueLit[*pClause] == 0) {
-          iScore -= aClausePen[*pClause];
+          iScore -= aClausePenaltyINT[*pClause];
         }
         pClause++;
       }
@@ -1994,7 +1994,7 @@ void PickNoveltyTabu()
 
       for (i = 0; i < iNumOcc; i++) {
         if (aNumTrueLit[*pClause] == 1) {
-          iScore += aClausePen[*pClause];
+          iScore += aClausePenaltyINT[*pClause];
         }
         pClause++;
       }
@@ -3873,7 +3873,7 @@ SINT32 BestLookAheadPenScore(UINT32 iLookVar) {
       pLit = pClauseLits[*pClause];
       for (k=0;k<aClauseLen[*pClause];k++) {
         iVar = GetVarFromLit(*pLit);
-        UpdateLookAhead(iVar,-aClausePen[*pClause]);
+        UpdateLookAhead(iVar,-aClausePenaltyINT[*pClause]);
         pLit++;
       }
     }
@@ -3883,7 +3883,7 @@ SINT32 BestLookAheadPenScore(UINT32 iLookVar) {
         if (IsLitTrue(*pLit)) {
           iVar = GetVarFromLit(*pLit);
           if (iVar != iLookVar) {
-            UpdateLookAhead(iVar,+aClausePen[*pClause]);
+            UpdateLookAhead(iVar,+aClausePenaltyINT[*pClause]);
             break;
           }
         }
@@ -3899,13 +3899,13 @@ SINT32 BestLookAheadPenScore(UINT32 iLookVar) {
       pLit = pClauseLits[*pClause];
       for (k=0;k<aClauseLen[*pClause];k++) {
         iVar = GetVarFromLit(*pLit);
-        UpdateLookAhead(iVar,+aClausePen[*pClause]);
+        UpdateLookAhead(iVar,+aClausePenaltyINT[*pClause]);
         pLit++;
       }
     }
     if (aNumTrueLit[*pClause]==1) {
       iVar = aCritSat[*pClause];
-      UpdateLookAhead(iVar,-aClausePen[*pClause]);
+      UpdateLookAhead(iVar,-aClausePenaltyINT[*pClause]);
     }
     pClause++;
   }

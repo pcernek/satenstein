@@ -111,7 +111,7 @@ void PickWalkSatSKC() {
 
       for (i=0;i<iNumOcc;i++) {
       if (aNumTrueLit[*pClause]==1) {
-        iScore += aClausePen[*pClause];
+        iScore += aClausePenaltyINT[*pClause];
       }
       pClause++;
     }
@@ -195,7 +195,7 @@ UINT32 PickClauseWCSPen() {
   iClauseSum = 0;
   for (j=0;j<iNumFalse;j++) {
     iClause = aFalseList[j];
-    iClauseSum += aClausePen[iClause];
+    iClauseSum += aClausePenaltyINT[iClause];
     if (iRandClause < iClauseSum) {
       break;
     }

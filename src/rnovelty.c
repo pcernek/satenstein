@@ -176,7 +176,7 @@ void PickRNoveltyCore()
         pClause = pLitClause[*pLit];
         for (i = 0; i < iNumOcc; i++) {
           if (aNumTrueLit[*pClause] == 0) {
-            iScore -= aClausePen[*pClause];
+            iScore -= aClausePenaltyINT[*pClause];
             iScoreWithoutPen--;
           }
           pClause++;
@@ -187,7 +187,7 @@ void PickRNoveltyCore()
 
         for (i = 0; i < iNumOcc; i++) {
           if (aNumTrueLit[*pClause] == 1) {
-            iScore += aClausePen[*pClause];
+            iScore += aClausePenaltyINT[*pClause];
             iScoreWithoutPen++;
           }
           pClause++;
@@ -257,7 +257,7 @@ void PickRNoveltyCore()
         pClause = pLitClause[*pLit];
         for (i = 0; i < iNumOcc; i++) {
           if (aNumTrueLit[*pClause] == 0) {
-            iScore -= aClausePen[*pClause];
+            iScore -= aClausePenaltyINT[*pClause];
             iScoreWithoutPen--;
           }
           pClause++;
@@ -268,7 +268,7 @@ void PickRNoveltyCore()
 
         for (i = 0; i < iNumOcc; i++) {
           if (aNumTrueLit[*pClause] == 1) {
-            iScore += aClausePen[*pClause];
+            iScore += aClausePenaltyINT[*pClause];
             iScoreWithoutPen++;
           }
           pClause++;

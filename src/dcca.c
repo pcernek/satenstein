@@ -20,6 +20,8 @@ UINT32 *SDvarsList;
 UINT32 numSDvars;
 UINT32 *SDvarsListPos;
 
+UINT32 iAvgClauseWeightThreshold;
+
 // TODO: Complete this function
 void InitDCCA() {
   InitConfCheckingVars();
@@ -36,6 +38,71 @@ void PickDCCA() {
   if (iFlipCandidate == 0) {
     PickSDvar();
   }
+
+  if (iFlipCandidate == 0) {
+    PickDCCADiversify();
+  }
+
+}
+
+void PickDCCADiversify() {
+  UpdateClauseWeightsSWT();
+  PickBestVarInRandUNSATClause();
+}
+
+void PickBestVarInRandUNSATClause() {
+  UINT32 i;
+  SINT32 iScore;
+  UINT32 iClause;
+  UINT32 iClauseLen;
+  UINT32 iVar;
+  LITTYPE *pLit;
+
+  iBestScore = bPen ? iTotalPenaltyINT : iNumClauses;
+
+  if (iNumFalse) {
+    iClause = aFalseList[RandomInt(iNumFalse)];
+    iClauseLen = aClauseLen[iClause];
+  }
+  else {
+    iFlipCandidate = 0;
+    return;
+  }
+
+  /* Find var with best score. */
+  pLit = pClauseLits[iClause];
+  for (i = 0; i < iClauseLen; i++) {
+    iVar = GetVarFromLit(*pLit);
+    iScore = GetScore(iVar);
+
+    if (iScore < iBestScore) {
+      iBestScore = iScore;
+      iFlipCandidate = iVar;
+    }
+
+    pLit++;
+  }
+
+}
+
+void UpdateClauseWeightsSWT() {
+  IncrementUNSATClauseWeights();
+  if ( iTotalPenaltyINT / iNumClauses > iAvgClauseWeightThreshold) {
+    SmoothSWT();
+  }
+}
+
+/**
+ * The SWT smoothing scheme (Cai & Su, "Local Search for Boolean satisfiability
+ *  with configuration checking and subscore", 2013):
+ *    - increment clause weights of all unsat clauses
+ *    - apply smoothing if averaged clause weight exceeds threshold wt
+ */
+void SmoothSWT() {
+
+}
+
+void IncrementUNSATClauseWeights() {
 
 }
 
@@ -214,4 +281,3 @@ void PickBestOldestVar(UINT32 *varList, UINT32 listSize) {
 
   iFlipCandidate = bestVar;
 }
-

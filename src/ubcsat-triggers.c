@@ -5259,8 +5259,6 @@ void UpdateVarPenScore() {
 }
 
 void FlipTrackChangesFCLPen() {
-  /* TODO: The array that keeps track of clause penalties in this function was changed
-   *  from aClausePen to aClausePenaltyINT. Finish propagating the consequences of that modification. */
 
   register UINT32 j;
   register UINT32 k;

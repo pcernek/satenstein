@@ -715,7 +715,6 @@ extern UINT32 *aWeightedList;
 extern UINT32 *aWhereWeight;
 
 extern SINT32 *aVarPenScore;
-extern UINT32 *aClausePen;
 
 extern BOOL bPen;
 extern UINT32 *aVarLastSatisfied;

@@ -6,18 +6,16 @@
 #define SATENSTEIN_TESTDCCA_H
 
 #include <gtest/gtest.h>
-#include <ubcsat.h>
 extern "C" {
+  #include <ubcsat.h>
+  #include <ubcsat-globals.h>
   #include <dcca.h>
-  #include "conf-checking.h"
 };
 
 
 class DccaTest : public ::testing::Test {
 
 protected:
-
-  const int _numVars = 6;
 
   UINT32 _numCSDvars;
   UINT32*_csdVarsList;
@@ -30,12 +28,26 @@ protected:
 
 
   DccaTest();
-
-  void initializeArrays();
+  ~DccaTest();
 
   template <typename T>
   void copyArray(T *src, T *dst, UINT32 size);
 
+  static UINT32 sum(UINT32 *pInt, int size);
+
+  void initVarScores();
+
+  void initVarLastChange();
+
+  void initCSDvars();
+
+  void initNVDvars();
+
+  void initSDvars();
+
+  void initConfChecking();
+
+  void initSmoothing();
 };
 
 

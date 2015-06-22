@@ -22,6 +22,9 @@ UINT32 *SDvarsListPos;
 
 UINT32 iAvgClauseWeightThreshold;
 
+FLOAT fDCCAp;
+FLOAT fDCCAq;
+
 // TODO: Complete this function
 void InitDCCA() {
   InitConfCheckingVars();
@@ -50,6 +53,7 @@ void PickDCCADiversify() {
   PickBestVarInRandUNSATClause();
 }
 
+// TODO: Consider moving to ubcsat-triggers.c
 void PickBestVarInRandUNSATClause() {
   UINT32 i;
   SINT32 iScore;
@@ -87,19 +91,33 @@ void PickBestVarInRandUNSATClause() {
 
 void UpdateClauseWeightsSWT() {
   IncrementUNSATClauseWeights();
-  if ( iTotalPenaltyINT / iNumClauses > iAvgClauseWeightThreshold) {
-    SmoothSWT();
-  }
+  SmoothSWT();
 }
 
 /**
- * The SWT smoothing scheme (Cai & Su, "Local Search for Boolean satisfiability
- *  with configuration checking and subscore", 2013):
- *    - increment clause weights of all unsat clauses
- *    - apply smoothing if averaged clause weight exceeds threshold wt
+ * The SWT smoothing scheme (Cai & Su, "Local Search for Boolean
+ *  satisfiability with configuration checking and subscore", 2013).
+ *
+ * PRE: As with any other smoothing scheme (as far as I know),
+ *  assumes bPen == TRUE (since smoothing of clause weights
+ *  is meaningless if clause weights are not being used)
+ * POST: If the average clause weight has exceeded a threshold,
+ *  the clause weights of all currently UNSAT clauses are smoothed.
  */
 void SmoothSWT() {
+  UINT32  iAvgClausePenalty = iTotalPenaltyINT / iNumClauses;
 
+  if (iAvgClausePenalty  < iAvgClauseWeightThreshold)
+    return;
+
+  UINT32 i;
+  UINT32 clause;
+
+  for (i = 0; i < iNumFalse; i++) {
+    clause = aFalseList[i];
+    aClausePenaltyINT[clause] = (UINT32) ( (fDCCAp + FLT_EPSILON) * aClausePenaltyINT[clause]) +
+                                (UINT32) ( (fDCCAq + FLT_EPSILON) * iAvgClausePenalty);
+  }
 }
 
 void IncrementUNSATClauseWeights() {

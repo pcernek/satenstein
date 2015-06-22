@@ -7,6 +7,8 @@
 
 #include "ubcsat.h"
 
+#include <float.h>
+
 /***** lists of "configuration changed decreasing" vars ******/
 extern BOOL*  CSchangedList;
 extern UINT32 *CSDvarsList;
@@ -23,6 +25,8 @@ extern UINT32 numSDvars;
 extern UINT32 *SDvarsListPos;
 
 extern UINT32 iAvgClauseWeightThreshold;
+extern FLOAT fDCCAp;
+extern FLOAT fDCCAq;
 
 void PickDCCA();
 

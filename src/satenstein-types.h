@@ -9,7 +9,6 @@ typedef enum {
   UPDATE_G2WSAT_1 = 1,
   UPDATE_G2WSAT_2,
   UPDATE_GNOVELTYPLUS,
-  UPDATE_DCCA
 } PromListUpdateScheme;
 
 typedef enum {

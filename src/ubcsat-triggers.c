@@ -4851,10 +4851,6 @@ void UpdateDecPromVars() {
 
       break;
 
-    case UPDATE_DCCA:
-      UpdateVarConfigurations();
-      break;
-
     default:
       // do nothing
       break;

@@ -25,9 +25,50 @@ UINT32 iAvgClauseWeightThreshold;
 FLOAT fDCCAp;
 FLOAT fDCCAq;
 
+void AddDCCA() {
+
+  ALGORITHM *pCurAlg;
+
+  pCurAlg = CreateAlgorithm("dcca","",0,
+                            "Deouble Configuration Checking with Aspiration",
+                            "Luo, Cai, Wu, Su [AAAI 2014]",
+                            "PickDCCA",
+                            "DefaultProcedures,ConfChecking,Flip+TrackChanges+FCLPen,VarLastChange,ClausePenaltyINT,PenClauseList,VarsShareClauses,VarPenScore",
+                            "default","default");
+
+  AddParmUInt(&pCurAlg->parmList,"-avgweightthreshold",
+             "average clause weight threshold [default %s]",
+             "on the diversification step, if the average clause weight exceeds~this threshold, smoothing is performed",
+             "",&iAvgClauseWeightThreshold,300);
+  AddParmFloat(&pCurAlg->parmList,"-DCCAp","DCCA p param [default %s]","weight of current clause score in SWT smoothing [default %s]","",&fDCCAp,0.3);
+  AddParmFloat(&pCurAlg->parmList,"-DCCAq","DCCA q param [default %s]","weight of average clause score in SWT smoothing [default %s]","",&fDCCAp,0.0);
+
+  CreateTrigger("InitDCCA",PostRead,InitDCCA,"","");
+
+  CreateTrigger("PickDCCA",ChooseCandidate,PickDCCA,"","");
+
+  // TODO: Consider moving this to ubcsat-triggers.c
+  CreateTrigger("CreateCSDvars",CreateData,CreateCSDvars,"","");
+  CreateTrigger("InitCSDvars",InitStateInfo,InitCSDvars,"","");
+  CreateTrigger("UpdateCSDvars",UpdateStateInfo,UpdateCSDvars,"","");
+  CreateContainerTrigger("CSDvars","CreateCSDvars,InitCSDvars,UpdateCSDvars");
+
+  CreateTrigger("CreateNVDvars",CreateData,CreateNVDvars,"","");
+  CreateTrigger("InitNVDvars",InitStateInfo,InitNVDvars,"","");
+  CreateTrigger("UpdateNVDvars",UpdateStateInfo,UpdateNVDvars,"","");
+  CreateContainerTrigger("NVDvars","CreateNVDvars,InitNVDvars,UpdateNVDvars");
+
+  CreateTrigger("CreateSDvars",CreateData,CreateSDvars,"","");
+  CreateTrigger("InitSDvars",InitStateInfo,InitSDvars,"","");
+  CreateTrigger("UpdateSDvars",UpdateStateInfo,UpdateSDvars,"","");
+  CreateContainerTrigger("SDvars","CreateSDvars,InitSDvars,UpdateSDvars");
+
+  CreateContainerTrigger("ConfChecking","CSDvars,NVDvars,SDvars");
+}
+
 // TODO: Complete this function
 void InitDCCA() {
-  InitConfCheckingVars();
+  InitSDvars();
 }
 
 void PickDCCA() {
@@ -53,6 +94,11 @@ void PickDCCADiversify() {
   PickBestVarInRandUNSATClause();
 }
 
+/**
+ * Picks an UNSAT clause at random, then picks the variable with the
+ *  best score from that clause. If two variables are tied for the
+ *  best score, pick the variable that was flipped the least recently.
+ */
 // TODO: Consider moving to ubcsat-triggers.c
 void PickBestVarInRandUNSATClause() {
   UINT32 i;
@@ -60,9 +106,8 @@ void PickBestVarInRandUNSATClause() {
   UINT32 iClause;
   UINT32 iClauseLen;
   UINT32 iVar;
+  UINT32 iBestVarAge;
   LITTYPE *pLit;
-
-  iBestScore = bPen ? iTotalPenaltyINT : iNumClauses;
 
   if (iNumFalse) {
     iClause = aFalseList[RandomInt(iNumFalse)];
@@ -73,20 +118,24 @@ void PickBestVarInRandUNSATClause() {
     return;
   }
 
+  iBestScore = bPen ? iTotalPenaltyINT : iNumClauses;
+  iBestVarAge = iStep;
+
   /* Find var with best score. */
   pLit = pClauseLits[iClause];
   for (i = 0; i < iClauseLen; i++) {
     iVar = GetVarFromLit(*pLit);
     iScore = GetScore(iVar);
 
-    if (iScore < iBestScore) {
-      iBestScore = iScore;
+    if (iScore < iBestScore ||
+          (iScore == iBestScore && aVarLastChange[iVar] < iBestVarAge) )
+    {
       iFlipCandidate = iVar;
+      iBestScore = iScore;
+      iBestVarAge = aVarLastChange[iVar];
     }
-
     pLit++;
   }
-
 }
 
 void UpdateClauseWeightsSWT() {
@@ -121,37 +170,61 @@ void SmoothSWT() {
 }
 
 void IncrementUNSATClauseWeights() {
-
+  // TODO: Implement and move to ubcsat-triggers.c (or link to an already-existing function there)
 }
 
 void CreateConfCheckingVars() {
-  CSDvarsList      = AllocateRAM((iNumVars+1) * sizeof(UINT32));
-  CSDvarsListPos   = AllocateRAM((iNumVars+1) * sizeof(UINT32));
-  CSchangedList    = AllocateRAM((iNumVars+1) * sizeof(BOOL));
+  CreateCSDvars();
+  CreateNVDvars();
+  CreateSDvars();
+}
 
-  NVDvarsList      = AllocateRAM((iNumVars+1) * sizeof(UINT32));
-  NVDvarsListPos   = AllocateRAM((iNumVars+1) * sizeof(UINT32));
-  NVchangedList    = AllocateRAM((iNumVars+1) * sizeof(BOOL));
-
+void CreateSDvars() {
   SDvarsList       = AllocateRAM((iNumVars+1) * sizeof(UINT32));
   SDvarsListPos    = AllocateRAM((iNumVars+1) * sizeof(UINT32));
 }
 
-void InitConfCheckingVars() {
+void CreateNVDvars() {
+  NVDvarsList      = AllocateRAM((iNumVars+1) * sizeof(UINT32));
+  NVDvarsListPos   = AllocateRAM((iNumVars+1) * sizeof(UINT32));
+  NVchangedList    = AllocateRAM((iNumVars+1) * sizeof(BOOL));
+}
+
+void CreateCSDvars() {
+  CSDvarsList      = AllocateRAM((iNumVars+1) * sizeof(UINT32));
+  CSDvarsListPos   = AllocateRAM((iNumVars+1) * sizeof(UINT32));
+  CSchangedList    = AllocateRAM((iNumVars+1) * sizeof(BOOL));
+}
+
+void InitSDvars() {
+  UINT32 j;
+
+  numSDvars = 0;
+
+  for (j = 1; j <= iNumVars; j++) {
+    SDvarsListPos[j] = 0;
+  }
+}
+
+void InitCSDvars() {
   UINT32 j;
 
   numCSDvars = 0;
-  numNVDvars = 0;
-  numSDvars = 0;
 
   for (j = 1; j <= iNumVars; j++) {
     CSDvarsListPos[j] = 0;
     CSchangedList[j] = TRUE;
+  }
+}
 
+void InitNVDvars() {
+  UINT32 j;
+
+  numNVDvars = 0;
+
+  for (j = 1; j <= iNumVars; j++) {
     NVDvarsListPos[j] = 0;
     NVchangedList[j] = TRUE;
-
-    SDvarsListPos[j] = 0;
   }
 }
 
@@ -279,23 +352,24 @@ void PickSDvar() {
   PickBestOldestVar(SDvarsList, numSDvars);
 }
 
+/**
+ * Find the variable with the best score, breaking ties
+ *  in favor of the least recently-flipped variable.
+ */
 void PickBestOldestVar(UINT32 *varList, UINT32 listSize) {
   UINT32 iVar;
-  SINT32 maxScore = 0;
-  UINT32 bestVar = 0;
+  SINT32 iBestScore = bPen ? iTotalPenaltyINT : iNumClauses;
+  UINT32 iBestVarAge = iStep;
   UINT32 i;
 
-  // Find the variable with the best score, breaking ties
-  //   in favor of the least recently-flipped variable
   for (i = 0; i < listSize; i ++) {
     iVar = varList[i];
-    if (aVarScore[iVar] < maxScore ||
-        (aVarScore[iVar] == maxScore && aVarLastChange[iVar] < aVarLastChange[bestVar]) )
+    if (aVarScore[iVar] < iBestScore ||
+        (aVarScore[iVar] == iBestScore && aVarLastChange[iVar] < iBestVarAge) )
     {
-      maxScore = aVarScore[iVar];
-      bestVar = iVar;
+      iFlipCandidate = iVar;
+      iBestScore = aVarScore[iVar];
+      iBestVarAge = aVarLastChange[iVar];
     }
   }
-
-  iFlipCandidate = bestVar;
 }

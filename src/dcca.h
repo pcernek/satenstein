@@ -30,23 +30,24 @@ extern FLOAT fDCCAq;
 
 void PickDCCA();
 
-void UpdateDCCA();
+void CreateCSDvars();
+void CreateNVDvars();
+void CreateSDvars();
 
-void CreateConfCheckingVars();
-void InitConfCheckingVars();
-
-void UpdateVarConfigurations();
-
-void UpdateSDvars();
-
-void UpdateCSchanged(UINT32 toggledClause, UINT32 exceptVar);
-void UpdateNVchanged(UINT32 flippedVar);
-
-void UpdateNVDvars();
+void InitCSDvars();
+void InitNVDvars();
+void InitSDvars();
 
 void UpdateCSDvars();
+void UpdateNVDvars();
+void UpdateSDvars();
 
-
+// TODO: Reconsider the need for the following functions
+void UpdateDCCA();
+void CreateConfCheckingVars();
+void UpdateVarConfigurations();
+void UpdateCSchanged(UINT32 toggledClause, UINT32 exceptVar);
+void UpdateNVchanged(UINT32 flippedVar);
 void UpdateConfigurationDecreasing(BOOL* confChangedList, UINT32* confDecreasingSet,
                                    UINT32* confDecreasingSetPos, UINT32* pointerToSetSize);
 

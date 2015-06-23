@@ -80,5 +80,6 @@ void AddAlgorithms() {
  
   AddRandom();
 
+  AddDCCA();
 }
 

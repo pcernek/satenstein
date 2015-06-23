@@ -211,3 +211,6 @@ void PickVW2Tabu();
 void PickVW2Automated();
 extern FLOAT *aVW2Weights;
 
+/* dcca.c */
+
+void AddDCCA();

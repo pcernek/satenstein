@@ -99,7 +99,7 @@ void AddSatenstein() {
     "Generalized local search algorithm",
     "Yet to be published",
     "PickSatenstein,InitRSAPS,PostFlipRSAPS,PostFlipSAPS,PostFlipPAWS",
-    "DefaultProcedures,AdaptPromNoveltyNoise,Flip+TrackChanges+FCL,Flip+FalseClauseList,DecPromVars,FalseClauseList,VarLastChange,MakeBreak,AdaptNoveltyPlusNoise,VarLastSatisfied,FlipCounts,LookAhead,EnableDisableTrigger,VarInFalse,VarScore,VW2Weights,Flip+MBPFL+FCL+VIF,ClauseVarFlipCounts,AutoVW2Weights,Flip+TrackChanges+FCLPen,DecPromPenVars,ClausePenaltyINT,VarPenScore,WeightedList,VarsShareClauses,Flip+MBPINT+FCL+VIF,PenClauseList,SpecialUpdate,SpecialUpdateMakeBreak",
+    "DefaultProcedures,AdaptPromNoveltyNoise,Flip+TrackChanges+FCL,Flip+FalseClauseList,DecPromVars,FalseClauseList,VarLastChange,MakeBreak,AdaptNoveltyPlusNoise,VarLastSatisfied,FlipCounts,LookAhead,EnableDisableTrigger,VarInFalse,VarScore,VW2Weights,Flip+MBPFL+FCL+VIF,ClauseVarFlipCounts,AutoVW2Weights,Flip+TrackChanges+FCL,DecPromPenVars,ClausePenaltyINT,VarPenScore,WeightedList,VarsShareClauses,Flip+MBPINT+FCL+VIF,PenClauseList,SpecialUpdate,SpecialUpdateMakeBreak",
     "default","default");
 
   CopyParameters(pCurAlg, "novelty+", "", FALSE, 0);
@@ -321,21 +321,12 @@ void EnableDisableTrigger() {
    * Choose a flipping scheme
    */
   if (((bPerformRandomWalk) && (iRandomStep == 2)) || (bPromisingList) || ((bSingleClause) && (iHeuristic > 9))) {
-    if (bPen) {
-      ActivateTriggers("Flip+TrackChanges+FCLPen");
-      DeActivateTriggers("Flip+TrackChanges+FCL");
-    }
-    else {
-      ActivateTriggers("Flip+TrackChanges+FCL");
-      DeActivateTriggers("Flip+TrackChanges+FCLPen");
-    }
+    ActivateTriggers("Flip+TrackChanges+FCL");
     DeActivateTriggers("Flip+FalseClauseList");
-
-  } else {
-    DeActivateTriggers("Flip+TrackChanges+FCL,Flip+TrackChanges+FCLPen");
-
+  }
+  else {
+    DeActivateTriggers("Flip+TrackChanges+FCL");
     ActivateTriggers("Flip+FalseClauseList");
-
   }
 
   /*SAPS and PAWS need some disjoint set of triggers that other algorithms don't need

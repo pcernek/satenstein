@@ -239,7 +239,6 @@ void UpdateTrackPenChanges();
 void FlipTrackChanges();
 void FlipTrackChangesFCL();
 void FlipTrackChangesFCLW();
-void FlipTrackChangesFCLPen();
 
 void CreateTrackChangesW();
 void InitTrackChangesW();
@@ -724,9 +723,10 @@ void AddDataTriggers() {
 
 
   CreateTrigger("Flip+VarScore",FlipCandidate,FlipVarScore,"VarScore","DefaultFlip,UpdateVarScore");
-  CreateTrigger("Flip+TrackChanges+FCL",FlipCandidate,FlipTrackChangesFCL,"TrackChanges,FalseClauseList,ClauseVarFlipCounts","DefaultFlip,UpdateTrackChanges,UpdateVarScore,UpdateFalseClauseList,UpdateDecPromPenVars");
+  CreateTrigger("Flip+TrackChanges+FCL",FlipCandidate,FlipTrackChangesFCL,
+                "TrackChanges,FalseClauseList,ClauseVarFlipCounts",
+                "DefaultFlip,UpdateTrackChanges,UpdateTrackPenChanges,UpdateVarScore,UpdateVarPenScore,UpdateFalseClauseList,UpdateDecPromPenVars");
   CreateTrigger("Flip+TrackChanges+FCL+W",FlipCandidate,FlipTrackChangesFCLW,"TrackChangesW,FalseClauseList,ClauseVarFlipCounts","DefaultFlipW,UpdateTrackChangesW,UpdateVarScoreW,UpdateFalseClauseList,UpdateDecPromPenVars");
-   CreateTrigger("Flip+TrackChanges+FCLPen",FlipCandidate,FlipTrackChangesFCLPen,"TrackPenChanges,FalseClauseList,ClauseVarFlipCounts","DefaultFlip,UpdateTrackPenChanges,UpdateVarPenScore,UpdateFalseClauseList,UpdateDecPromPenVars");
 
   CreateTrigger("CreateDecPromVars",CreateStateInfo,CreateDecPromVars,"CreateTrackChanges","");
   CreateTrigger("InitDecPromVars",InitStateInfo,InitDecPromVars,"InitTrackChanges","");
@@ -4669,155 +4669,6 @@ void UpdateVarLastSatisfied() {
 
 }
 
-
-void FlipTrackChangesFCL() {
-
-  UINT32 j;
-  UINT32 k;
-  UINT32 *pClause;
-  UINT32 iVar;
-  LITTYPE litWasTrue;
-  LITTYPE litWasFalse;
-  LITTYPE *pLit;
-
-  if (iFlipCandidate == 0) {
-    return;
-  }
-    /*This method of update is observed in 
-    GNovelty+ */
-  if (iUpdateSchemePromList == UPDATE_GNOVELTYPLUS) {
-    UpdateNeighborDecPromVarStatus();
-  }
-  iNumChanges = 0;
-
-  // get the indices of the literals for the variable we're about to flip,
-  //  distinguishing between the ones that were previously true
-  //  and those that were previously false
-  litWasTrue = GetTrueLit(iFlipCandidate);
-  litWasFalse = GetFalseLit(iFlipCandidate);
-
-  // Flip the candidate!!
-  aVarValue[iFlipCandidate] = (UINT32) !aVarValue[iFlipCandidate];
-
-  if (performNeighborConfChecking) {
-    RemoveVarFromSet(iFlipCandidate, NVDvarsList, NVDvarsListPos, &numNVDvars);
-    UpdateNVchanged(iFlipCandidate);
-  }
-
-  if (performClauseConfChecking) {
-    RemoveVarFromSet(iFlipCandidate, CSDvarsList, CSDvarsListPos, &numCSDvars);
-    CSchangedList[iFlipCandidate] = FALSE;
-  }
-
-  // pClause is a pointer to the list of clauses containing literals that were TRUE
-  //  under the previous assignment of the variable that we have just flipped
-  pClause = pLitClause[litWasTrue];
-
-  // update the state of each clause for which this flip added a FALSE literal
-  for (j = 0; j < aNumLitOcc[litWasTrue]; j++) {
-    // since this literal was true, and we just flipped it,
-    //  now each clause that contained that literal has one less true literal
-    aNumTrueLit[*pClause]--;
-
-    // if flipping the variable made this clause become unsat...
-    if (aNumTrueLit[*pClause]==0) { 
-
-      // add this clause to the list of false clauses
-      aFalseList[iNumFalse] = *pClause;
-      aFalseListPos[*pClause] = iNumFalse++;
-
-      // something added in by SATenstein
-      fSumClauseVarFlipCount += fClauseVarFlipCounts[*pClause] + ((FLOAT)1 /(FLOAT) aClauseLen[*pClause]);;
-      // update configuration?
-      UpdateChange(iFlipCandidate);
-
-      if (performClauseConfChecking) {
-        UpdateCSchanged(*pClause, iFlipCandidate);
-      }
-
-      // since a clause containing this variable just became false, flipping this variable again
-      //  would add a true clause to the formula.
-      //
-      aVarScore[iFlipCandidate]--;
-
-      pLit = pClauseLits[*pClause];
-      for (k=0;k<aClauseLen[*pClause];k++) {
-        iVar = GetVarFromLit(*pLit);
-        UpdateChange(iVar);
-        aVarScore[iVar]--;
-        pLit++;
-      }
-    }
-
-    // added by SATenstein
-    // if the clause has just a single true literal remaining...
-    if (aNumTrueLit[*pClause] == 1) {
-      pLit = pClauseLits[*pClause];
-      for (k = 0; k < aClauseLen[*pClause]; k++) {
-        if (IsLitTrue(*pLit)) {
-          iVar = GetVarFromLit(*pLit);
-          UpdateChange(iVar);
-          aVarScore[iVar]++;
-          aCritSat[*pClause] = iVar;
-          break;
-        }
-        pLit++;
-      }
-    }
-
-    pClause++;
-  }
-
-  // pClause is now a pointer to the list of clauses containing literals that were FALSE
-  //  under the previous assignment of the variable that we have just flipped
-  pClause = pLitClause[litWasFalse];
-
-  // update the state of each clause for which this flip added a TRUE literal
-  for (j = 0; j < aNumLitOcc[litWasFalse]; j++) {
-
-    // each clause containing this literal just got one more true literal
-    aNumTrueLit[*pClause]++;
-
-    // if flipping this variable made this clause become sat...
-    if (aNumTrueLit[*pClause] == 1) {
-
-      if (performClauseConfChecking) {
-        UpdateCSchanged(*pClause, iFlipCandidate);
-      }
-
-      aFalseList[aFalseListPos[*pClause]] = aFalseList[--iNumFalse];
-      aFalseListPos[aFalseList[iNumFalse]] = aFalseListPos[*pClause];
-      if(iStep!=2)
-      fSumClauseVarFlipCount -= fClauseVarFlipCounts[*pClause] ;
-
-      pLit = pClauseLits[*pClause];
-      for (k=0;k<aClauseLen[*pClause];k++) {
-        iVar = GetVarFromLit(*pLit);
-        UpdateChange(iVar);
-        aVarScore[iVar]++;
-        pLit++;
-      }
-
-      UpdateChange(iFlipCandidate);
-      aVarScore[iFlipCandidate]++;
-      aCritSat[*pClause] = iFlipCandidate;
-    }
-
-    if (aNumTrueLit[*pClause]==2) {
-      iVar = aCritSat[*pClause];
-      UpdateChange(iVar);
-      aVarScore[iVar]--;
-    }
-
-    pClause++;
-  }
-
-  if (iUpdateSchemePromList == UPDATE_GNOVELTYPLUS) {
-    AddNeighboringDecPromVars();
-  }
- 
-}
-
 void UpdateNeighborDecPromVarStatus() {
 
   UINT32 iNumNeighbor = aNumVarsShareClause[iFlipCandidate];
@@ -5258,12 +5109,12 @@ void UpdateVarPenScore() {
   }
 }
 
-void FlipTrackChangesFCLPen() {
+void FlipTrackChangesFCL() {
 
-  register UINT32 j;
-  register UINT32 k;
-  register UINT32 *pClause;
-  register UINT32 iVar;
+  UINT32 j;
+  UINT32 k;
+  UINT32 *pClause;
+  UINT32 iVar;
   LITTYPE litWasTrue;
   LITTYPE litWasFalse;
   LITTYPE *pLit;
@@ -5277,39 +5128,86 @@ void FlipTrackChangesFCLPen() {
   }
   iNumChanges = 0;
 
+  // get the indices of the literals for the variable we're about to flip,
+  //  distinguishing between the ones that were previously true
+  //  and those that were previously false
   litWasTrue = GetTrueLit(iFlipCandidate);
   litWasFalse = GetFalseLit(iFlipCandidate);
 
-  aVarValue[iFlipCandidate] = 1 - aVarValue[iFlipCandidate];
+  // Flip the candidate!!
+  aVarValue[iFlipCandidate] = (UINT32) !aVarValue[iFlipCandidate];
 
+  if (performNeighborConfChecking) {
+    RemoveVarFromSet(iFlipCandidate, NVDvarsList, NVDvarsListPos, &numNVDvars);
+    UpdateNVchanged(iFlipCandidate);
+  }
+
+  if (performClauseConfChecking) {
+    RemoveVarFromSet(iFlipCandidate, CSDvarsList, CSDvarsListPos, &numCSDvars);
+    CSchangedList[iFlipCandidate] = FALSE;
+  }
+
+  // pClause is a pointer to the list of clauses containing literals that were TRUE
+  //  under the previous assignment of the variable that we have just flipped
   pClause = pLitClause[litWasTrue];
+
+  // update the state of each clause for which this flip added a FALSE literal
   for (j = 0; j < aNumLitOcc[litWasTrue]; j++) {
+    // since this literal was true, and we just flipped it,
+    //  now each clause that contained that literal has one less true literal
     aNumTrueLit[*pClause]--;
+
+    // if flipping the variable made this clause become unsat...
     if (aNumTrueLit[*pClause] == 0) {
 
+      // add this clause to the list of false clauses
       aFalseList[iNumFalse] = *pClause;
       aFalseListPos[*pClause] = iNumFalse++;
-      iSumFalsePen += aClausePenaltyINT[*pClause];
+      if (bPen) {
+        iSumFalsePen += aClausePenaltyINT[*pClause];
+      }
+
+      /* This is for certain cases of Novelty */
+      if (iSelectClause == 5 || iSelectClause == 6) {
+        fSumClauseVarFlipCount += fClauseVarFlipCounts[*pClause] + ((FLOAT) 1 / (FLOAT) aClauseLen[*pClause]);;
+      }
 
       UpdateChange(iFlipCandidate);
-      aVarPenScore[iFlipCandidate] -= aClausePenaltyINT[*pClause];
+
+      if (performClauseConfChecking) {
+        UpdateCSchanged(*pClause, iFlipCandidate);
+      }
+
+      // since a clause containing this variable just became false, flipping this variable again
+      //  would add a true clause to the formula.
+      if (bPen) {
+        aVarPenScore[iFlipCandidate] -= aClausePenaltyINT[*pClause];
+      }
       aVarScore[iFlipCandidate]--;
+
       pLit = pClauseLits[*pClause];
       for (k = 0; k < aClauseLen[*pClause]; k++) {
         iVar = GetVarFromLit(*pLit);
         UpdateChange(iVar);
-        aVarPenScore[iVar] -= aClausePenaltyINT[*pClause];
+        if (bPen) {
+          aVarPenScore[iVar] -= aClausePenaltyINT[*pClause];
+        }
         aVarScore[iVar]--;
         pLit++;
       }
     }
+
+    // added by SATenstein
+    // if the clause has just a single true literal remaining...
     if (aNumTrueLit[*pClause] == 1) {
       pLit = pClauseLits[*pClause];
       for (k = 0; k < aClauseLen[*pClause]; k++) {
         if (IsLitTrue(*pLit)) {
           iVar = GetVarFromLit(*pLit);
           UpdateChange(iVar);
-          aVarPenScore[iVar] += aClausePenaltyINT[*pClause];
+          if (bPen) {
+            aVarPenScore[iVar] += aClausePenaltyINT[*pClause];
+          }
           aVarScore[iVar]++;
           aCritSat[*pClause] = iVar;
           break;
@@ -5317,43 +5215,76 @@ void FlipTrackChangesFCLPen() {
         pLit++;
       }
     }
+
     pClause++;
   }
 
+  // pClause is now a pointer to the list of clauses containing literals that were FALSE
+  //  under the previous assignment of the variable that we have just flipped
   pClause = pLitClause[litWasFalse];
+
+  // update the state of each clause for which this flip added a TRUE literal
   for (j = 0; j < aNumLitOcc[litWasFalse]; j++) {
+
+    // each clause containing this literal just got one more true literal
     aNumTrueLit[*pClause]++;
+
+    // if flipping this variable made this clause become sat...
     if (aNumTrueLit[*pClause] == 1) {
+
+      if (performClauseConfChecking) {
+        UpdateCSchanged(*pClause, iFlipCandidate);
+      }
 
       aFalseList[aFalseListPos[*pClause]] = aFalseList[--iNumFalse];
       aFalseListPos[aFalseList[iNumFalse]] = aFalseListPos[*pClause];
-      iSumFalsePen -= aClausePenaltyINT[*pClause];
+
+      /* This is for certain cases of Novelty */
+      if (iSelectClause == 5 || iSelectClause == 6) {
+        if (iStep != 2) {
+          fSumClauseVarFlipCount -= fClauseVarFlipCounts[*pClause];
+        }
+      }
+
+      if (bPen) {
+        iSumFalsePen -= aClausePenaltyINT[*pClause];
+      }
 
       pLit = pClauseLits[*pClause];
       for (k = 0; k < aClauseLen[*pClause]; k++) {
         iVar = GetVarFromLit(*pLit);
         UpdateChange(iVar);
-        aVarPenScore[iVar] += aClausePenaltyINT[*pClause];
+        if (bPen) {
+          aVarPenScore[iVar] += aClausePenaltyINT[*pClause];
+        }
         aVarScore[iVar]++;
         pLit++;
       }
+
       UpdateChange(iFlipCandidate);
-      aVarPenScore[iFlipCandidate] += aClausePenaltyINT[*pClause];
+      if (bPen) {
+        aVarPenScore[iFlipCandidate] += aClausePenaltyINT[*pClause];
+      }
       aVarScore[iFlipCandidate]++;
       aCritSat[*pClause] = iFlipCandidate;
     }
+
     if (aNumTrueLit[*pClause] == 2) {
       iVar = aCritSat[*pClause];
       UpdateChange(iVar);
-      aVarPenScore[iVar] -= aClausePenaltyINT[*pClause];
+      if (bPen) {
+        aVarPenScore[iVar] -= aClausePenaltyINT[*pClause];
+      }
       aVarScore[iVar]--;
     }
+
     pClause++;
   }
 
   if (iUpdateSchemePromList == UPDATE_GNOVELTYPLUS) {
     AddNeighboringDecPromVars();
   }
+
 }
 
 

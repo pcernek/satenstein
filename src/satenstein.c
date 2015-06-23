@@ -321,21 +321,12 @@ void EnableDisableTrigger() {
    * Choose a flipping scheme
    */
   if (((bPerformRandomWalk) && (iRandomStep == 2)) || (bPromisingList) || ((bSingleClause) && (iHeuristic > 9))) {
-    if (bPen) {
-      ActivateTriggers("Flip+TrackChanges+FCLPen");
-      DeActivateTriggers("Flip+TrackChanges+FCL");
-    }
-    else {
-      ActivateTriggers("Flip+TrackChanges+FCL");
-      DeActivateTriggers("Flip+TrackChanges+FCLPen");
-    }
+    ActivateTriggers("Flip+TrackChanges+FCL");
     DeActivateTriggers("Flip+FalseClauseList");
-
-  } else {
-    DeActivateTriggers("Flip+TrackChanges+FCL,Flip+TrackChanges+FCLPen");
-
+  }
+  else {
+    DeActivateTriggers("Flip+TrackChanges+FCL");
     ActivateTriggers("Flip+FalseClauseList");
-
   }
 
   /*SAPS and PAWS need some disjoint set of triggers that other algorithms don't need

@@ -33,7 +33,7 @@ void AddDCCA() {
                             "Deouble Configuration Checking with Aspiration",
                             "Luo, Cai, Wu, Su [AAAI 2014]",
                             "PickDCCA",
-                            "DefaultProcedures,ConfChecking,Flip+TrackChanges+FCLPen,VarLastChange,ClausePenaltyINT,PenClauseList,VarsShareClauses,VarPenScore",
+                            "DefaultProcedures,ConfChecking,Flip+TrackChanges+FCL,VarLastChange,ClausePenaltyINT,PenClauseList,VarsShareClauses,VarPenScore",
                             "default","default");
 
   AddParmUInt(&pCurAlg->parmList,"-avgweightthreshold",

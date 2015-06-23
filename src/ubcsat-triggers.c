@@ -723,11 +723,10 @@ void AddDataTriggers() {
 
 
   CreateTrigger("Flip+VarScore",FlipCandidate,FlipVarScore,"VarScore","DefaultFlip,UpdateVarScore");
-  CreateTrigger("Flip+TrackChanges+FCL",FlipCandidate,FlipTrackChangesFCL,"TrackChanges,FalseClauseList,ClauseVarFlipCounts","DefaultFlip,UpdateTrackChanges,UpdateVarScore,UpdateFalseClauseList,UpdateDecPromPenVars");
+  CreateTrigger("Flip+TrackChanges+FCL",FlipCandidate,FlipTrackChangesFCL,
+                "TrackChanges,FalseClauseList,ClauseVarFlipCounts",
+                "DefaultFlip,UpdateTrackChanges,UpdateTrackPenChanges,UpdateVarScore,UpdateVarPenScore,UpdateFalseClauseList,UpdateDecPromPenVars");
   CreateTrigger("Flip+TrackChanges+FCL+W",FlipCandidate,FlipTrackChangesFCLW,"TrackChangesW,FalseClauseList,ClauseVarFlipCounts","DefaultFlipW,UpdateTrackChangesW,UpdateVarScoreW,UpdateFalseClauseList,UpdateDecPromPenVars");
-  CreateTrigger("Flip+TrackChanges+FCLPen", FlipCandidate, FlipTrackChangesFCL,
-                "TrackPenChanges,FalseClauseList,ClauseVarFlipCounts",
-                "DefaultFlip,UpdateTrackPenChanges,UpdateVarPenScore,UpdateFalseClauseList,UpdateDecPromPenVars");
 
   CreateTrigger("CreateDecPromVars",CreateStateInfo,CreateDecPromVars,"CreateTrackChanges","");
   CreateTrigger("InitDecPromVars",InitStateInfo,InitDecPromVars,"InitTrackChanges","");

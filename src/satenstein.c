@@ -99,7 +99,7 @@ void AddSatenstein() {
     "Generalized local search algorithm",
     "Yet to be published",
     "PickSatenstein,InitRSAPS,PostFlipRSAPS,PostFlipSAPS,PostFlipPAWS",
-    "DefaultProcedures,AdaptPromNoveltyNoise,Flip+TrackChanges+FCL,Flip+FalseClauseList,DecPromVars,FalseClauseList,VarLastChange,MakeBreak,AdaptNoveltyPlusNoise,VarLastSatisfied,FlipCounts,LookAhead,EnableDisableTrigger,VarInFalse,VarScore,VW2Weights,Flip+MBPFL+FCL+VIF,ClauseVarFlipCounts,AutoVW2Weights,Flip+TrackChanges+FCLPen,DecPromPenVars,ClausePenaltyINT,VarPenScore,WeightedList,VarsShareClauses,Flip+MBPINT+FCL+VIF,PenClauseList,SpecialUpdate,SpecialUpdateMakeBreak",
+    "DefaultProcedures,AdaptPromNoveltyNoise,Flip+TrackChanges+FCL,Flip+FalseClauseList,DecPromVars,FalseClauseList,VarLastChange,MakeBreak,AdaptNoveltyPlusNoise,VarLastSatisfied,FlipCounts,LookAhead,EnableDisableTrigger,VarInFalse,VarScore,VW2Weights,Flip+MBPFL+FCL+VIF,ClauseVarFlipCounts,AutoVW2Weights,Flip+TrackChanges+FCL,DecPromPenVars,ClausePenaltyINT,VarPenScore,WeightedList,VarsShareClauses,Flip+MBPINT+FCL+VIF,PenClauseList,SpecialUpdate,SpecialUpdateMakeBreak",
     "default","default");
 
   CopyParameters(pCurAlg, "novelty+", "", FALSE, 0);

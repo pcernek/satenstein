@@ -48,6 +48,18 @@ protected:
   void initConfChecking();
 
   void initSmoothing();
+
+  void initIndependentClauses();
+
+  void initVarValues(int numVars);
+
+  void setToFalse(BOOL *array, UINT32 size);
+
+  void initLinkedClauses();
+
+  void setupNVDvars();
+
+  void setupCSDvars();
 };
 
 

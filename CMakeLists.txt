@@ -50,6 +50,7 @@ set(SOURCE_FILES
 include_directories( test )
 
 set(TEST_FILES ${SOURCE_FILES}
+#                test/AddRemoveListsTest.cpp
                 test/DccaTest.cpp
                 )
 

@@ -4,36 +4,40 @@
 
 #include "dcca.h"
 
-BOOL*  CSchangedList;
+BOOL*aCSchanged;
 
-UINT32 *CSDvarsList;
-UINT32 numCSDvars;
-UINT32 *CSDvarsListPos;
+UINT32 *aCSDvars;
+UINT32 iNumCSDvars;
+UINT32 *aCSDvarsPos;
 
-BOOL*  NVchangedList;
+BOOL*aNVchanged;
 
-UINT32 *NVDvarsList;
-UINT32 *NVDvarsListPos;
-UINT32 numNVDvars;
+UINT32 *aNVDvars;
+UINT32 *aNVDvarsPos;
+UINT32 iNumNVDvars;
 
-UINT32 *SDvarsList;
-UINT32 numSDvars;
-UINT32 *SDvarsListPos;
+UINT32 *aSDvars;
+UINT32 iNumSDvars;
+UINT32 *aSDvarsPos;
 
 UINT32 iAvgClauseWeightThreshold;
 
 FLOAT fDCCAp;
 FLOAT fDCCAq;
 
+BOOL* aIsCSDvar;
+BOOL* aIsNVDvar;
+BOOL* aIsSDvar;
+
 void AddDCCA() {
 
   ALGORITHM *pCurAlg;
 
   pCurAlg = CreateAlgorithm("dcca","",0,
-                            "Deouble Configuration Checking with Aspiration",
+                            "Double Configuration Checking with Aspiration",
                             "Luo, Cai, Wu, Su [AAAI 2014]",
                             "PickDCCA",
-                            "DefaultProcedures,ConfChecking,Flip+TrackChanges+FCL,VarLastChange,ClausePenaltyINT,PenClauseList,VarsShareClauses,VarPenScore",
+                            "DefaultProcedures,VarPenScore,ClausePenaltyINT,ConfChecking,Flip+TrackChanges+FCL,VarLastChange,PenClauseList,VarsShareClauses",
                             "default","default");
 
   AddParmUInt(&pCurAlg->parmList,"-avgweightthreshold",
@@ -43,32 +47,25 @@ void AddDCCA() {
   AddParmFloat(&pCurAlg->parmList,"-DCCAp","DCCA p param [default %s]","weight of current clause score in SWT smoothing [default %s]","",&fDCCAp,0.3);
   AddParmFloat(&pCurAlg->parmList,"-DCCAq","DCCA q param [default %s]","weight of average clause score in SWT smoothing [default %s]","",&fDCCAp,0.0);
 
-  CreateTrigger("InitDCCA",PostRead,InitDCCA,"","");
-
   CreateTrigger("PickDCCA",ChooseCandidate,PickDCCA,"","");
 
   // TODO: Consider moving this to ubcsat-triggers.c
   CreateTrigger("CreateCSDvars",CreateData,CreateCSDvars,"","");
-  CreateTrigger("InitCSDvars",InitStateInfo,InitCSDvars,"","");
+  CreateTrigger("InitCSDvars",PostInit,InitCSDvars,"","");
   CreateTrigger("UpdateCSDvars",UpdateStateInfo,UpdateCSDvars,"","");
   CreateContainerTrigger("CSDvars","CreateCSDvars,InitCSDvars,UpdateCSDvars");
 
   CreateTrigger("CreateNVDvars",CreateData,CreateNVDvars,"","");
-  CreateTrigger("InitNVDvars",InitStateInfo,InitNVDvars,"","");
+  CreateTrigger("InitNVDvars",PostInit,InitNVDvars,"","");
   CreateTrigger("UpdateNVDvars",UpdateStateInfo,UpdateNVDvars,"","");
   CreateContainerTrigger("NVDvars","CreateNVDvars,InitNVDvars,UpdateNVDvars");
 
   CreateTrigger("CreateSDvars",CreateData,CreateSDvars,"","");
-  CreateTrigger("InitSDvars",InitStateInfo,InitSDvars,"","");
+  CreateTrigger("InitSDvars",PostInit,InitSDvars,"","");
   CreateTrigger("UpdateSDvars",UpdateStateInfo,UpdateSDvars,"","");
   CreateContainerTrigger("SDvars","CreateSDvars,InitSDvars,UpdateSDvars");
 
   CreateContainerTrigger("ConfChecking","CSDvars,NVDvars,SDvars");
-}
-
-// TODO: Complete this function
-void InitDCCA() {
-  InitSDvars();
 }
 
 void PickDCCA() {
@@ -89,9 +86,227 @@ void PickDCCA() {
 
 }
 
+void PickCSDvar() {
+  PickBestOldestVar(aCSDvars, iNumCSDvars);
+}
+
+void PickNVDvar() {
+  PickBestOldestVar(aNVDvars, iNumNVDvars);
+}
+
+void PickSDvar() {
+  PickBestOldestVar(aSDvars, iNumSDvars);
+}
+
 void PickDCCADiversify() {
   UpdateClauseWeightsSWT();
   PickBestVarInRandUNSATClause();
+}
+
+void CreateCSDvars() {
+  aCSDvars = AllocateRAM((iNumVars+1) * sizeof(UINT32));
+  aCSDvarsPos = AllocateRAM((iNumVars+1) * sizeof(UINT32));
+  aIsCSDvar = AllocateRAM((iNumVars+1) * sizeof(BOOL));
+
+  aCSchanged = AllocateRAM((iNumVars+1) * sizeof(BOOL));
+}
+
+void CreateNVDvars() {
+  aNVDvars = AllocateRAM((iNumVars+1) * sizeof(UINT32));
+  aNVDvarsPos = AllocateRAM((iNumVars+1) * sizeof(UINT32));
+  aIsNVDvar = AllocateRAM((iNumVars+1) * sizeof(BOOL));
+
+  aNVchanged = AllocateRAM((iNumVars+1) * sizeof(BOOL));
+}
+
+void CreateSDvars() {
+  aSDvars = AllocateRAM((iNumVars+1) * sizeof(UINT32));
+  aSDvarsPos = AllocateRAM((iNumVars+1) * sizeof(UINT32));
+  aIsSDvar = AllocateRAM((iNumVars+1) * sizeof(BOOL));
+}
+
+void InitCSDvars() {
+  bPerformClauseConfChecking = TRUE;
+  InitDecVarLists(aCSDvars, aCSDvarsPos, &iNumCSDvars, aIsCSDvar);
+  InitVarConfiguration(aCSchanged);
+}
+
+void InitNVDvars() {
+  bPerformNeighborConfChecking = TRUE;
+  InitDecVarLists(aNVDvars, aNVDvarsPos, &iNumNVDvars, aIsNVDvar);
+  InitVarConfiguration(aNVchanged);
+}
+
+/**
+ * PRE: Requires that clause penalties have been computed.
+ *
+ * POST: Populates the list of Significant Decreasing (SD) variables,
+ *  in accordance with the "aspiration mechanism" described by
+ *  Cai and Su, 2013.
+ */
+void InitSDvars() {
+  UINT32 iVar;
+  SINT32 avgClausePenalty = iTotalPenaltyINT / iNumClauses;
+
+  iNumSDvars = 0;
+
+  for (iVar = 1; iVar <= iNumVars; iVar++) {
+    aIsSDvar[iVar] = FALSE;
+    /* NOTE: DCCA uses positive variable scores, whereas UBCSAT uses
+     *  negative variable scores and positive clause penalties. Thus
+     *  the DCCA paper defines "significant decreasing" as
+     *  VarScore > AvgClausePen, but here we use VarScore < -AvgClausePen. */
+    if (GetScore(iVar) < -avgClausePenalty) {
+      AddToList2(iVar, aSDvars, aSDvarsPos, &iNumSDvars, aIsSDvar);
+    }
+  }
+}
+
+/**
+ * PRE: Flipping variable iFlipCandidate has caused the state of
+ *  the given clause to change.
+ *
+ * POST: All variables that appear in the clause as literals are
+ *  are marked as variables whose Clause State-based configuration
+ *  has changed since their last flip.
+ * POST: The clause state-based configuration of iFlipCandidate is reset.
+ */
+void UpdateCSchanged(UINT32 toggledClause) {
+  UINT32 litIndex;
+
+  for (litIndex = 0; litIndex < aClauseLen[toggledClause]; litIndex++) {
+    UINT32 curVar = GetVar(toggledClause, litIndex);
+    aCSchanged[curVar] = TRUE;
+  }
+
+  aCSchanged[iFlipCandidate] = FALSE;
+}
+
+/**
+ * PRE: Variable iFlipCandidate has just been flipped.
+ *
+ * POST: All variables that appear in at least one clause with
+ *  iFlipCandidate are marked has having had their neighbor-based
+ *  configuration changed.
+ * POST: The neighbor-based configuration of iFlipCandidate is reset.
+ */
+void UpdateNVchanged(UINT32 flippedVar) {
+  UINT32 i;
+
+  for (i = 0; i < aNumVarsShareClause[flippedVar]; i++) {
+    UINT32 neighborVar = pVarsShareClause[flippedVar][i];
+    aNVchanged[neighborVar] = TRUE;
+  }
+
+  aNVchanged[flippedVar] = FALSE;
+}
+
+/**
+ * PRE: The scores of certain variables have changed, and these variables
+ *  have been marked as such by being added to aChangeList.
+ * PRE: The Clause State-based configuration of certain variables
+ *  has changed.
+ * PRE: If using clause weights, these have been updated.
+ *
+ * POST: The list of variables that are Clause State-based configuration
+ *  Decreasing (CSD) is updated.
+ */
+void UpdateCSDvars() {
+  UpdateConfigurationDecreasing(aCSchanged, aCSDvars, aCSDvarsPos, &iNumCSDvars, aIsCSDvar);
+}
+
+/**
+ * PRE: The scores of certain variables have changed, and these variables
+ *  have been marked as such by being added to aChangeList.
+ * PRE: The Neighbor Variable-based configuration of certain variables
+ *  has changed.
+ *
+ * POST: The list of variables that are Neighbor Variable-based configuration
+ *  Decreasing (NVD) is updated.
+ */
+void UpdateNVDvars() {
+  UpdateConfigurationDecreasing(aNVchanged, aNVDvars, aNVDvarsPos, &iNumNVDvars, aIsNVDvar);
+}
+
+/**
+ * PRE: The scores of certain variables have changed, and these variables
+ *  have been marked as such by being added to aChangeList.
+ * PRE: The Neighbor Variable-based configuration of certain variables
+ *  has changed.
+ *
+ * POST: The list of variables that are Significant Decreasing (SD)
+ *  is updated.
+ */
+void UpdateSDvars() {
+  UINT32 i;
+  SINT32 iAvgClausePen = iTotalPenaltyINT / iNumClauses;
+
+  // cycle through all the variables whose scores have changed this step
+  for(i = 0; i < iNumChanges; i++) {
+    UINT32 iVar = aChangeList[i];
+
+    // add vars that have become "significant decreasing"
+    /* NOTE: DCCA uses positive variable scores, whereas UBCSAT uses
+     *  negative variable scores and positive clause penalties. Thus
+     *  the DCCA paper defines "significant decreasing" as
+     *  VarScore > AvgClausePen, but here we use VarScore < -AvgClausePen. */
+    if (!aIsSDvar[iVar] && GetScore(iVar) < -iAvgClausePen ) {
+      AddToList2(iVar, aSDvars, aSDvarsPos, &iNumSDvars, aIsSDvar);
+    }
+      // remove vars that are no longer "configuration changed decreasing"
+    else if (aIsSDvar[iVar] &&  GetScore(iVar) >= -iAvgClausePen) {
+      RemoveFromList2(iVar, aSDvars, aSDvarsPos, &iNumSDvars, aIsSDvar);
+    }
+  }
+}
+
+void UpdateConfigurationDecreasing(BOOL *aConfChanged, UINT32 *aConfDecVars, UINT32 *aConfDecVarsPos,
+                                   UINT32 *pNumConfDecVars, BOOL *isConfDecreasing)
+{
+  UINT32 i;
+
+  // cycle through all the variables whose scores have changed this step
+  for(i = 0; i < iNumChanges; i++) {
+    UINT32 var = aChangeList[i];
+
+    // add vars that have become "configuration changed decreasing"
+    if (!isConfDecreasing[var] && aConfChanged[var] && isDecreasing(var)) {
+      AddToList2(var, aConfDecVars, aConfDecVarsPos, pNumConfDecVars, isConfDecreasing);
+    }
+    // remove vars that are no longer "configuration changed decreasing"
+    else if (isConfDecreasing[var] && !(isDecreasing(var) && aConfChanged[var]) ) {
+      RemoveFromList2(var, aConfDecVars, aConfDecVarsPos, pNumConfDecVars, isConfDecreasing);
+    }
+  }
+}
+
+/**
+ * Find the variable with the best score, breaking ties
+ *  in favor of the least-recently flipped variable.
+ *
+ * PRE: Variable scores and ages have been updated for this step.
+ *
+ * POST: iFlipCandidate is set to the highest-scoring variable in
+ *  the given list. If multiple variables are tied with the highest
+ *  score, iFlipCandidate is set to the variable least recently flipped
+ *  among them.
+ */
+void PickBestOldestVar(UINT32 *varList, UINT32 listSize) {
+  UINT32 iVar;
+  SINT32 iBestScore = bPen ? iTotalPenaltyINT : iNumClauses;
+  UINT32 iBestVarAge = iStep;
+  UINT32 i;
+
+  for (i = 0; i < listSize; i ++) {
+    iVar = varList[i];
+    if (aVarScore[iVar] < iBestScore ||
+        (aVarScore[iVar] == iBestScore && aVarLastChange[iVar] < iBestVarAge) )
+    {
+      iFlipCandidate = iVar;
+      iBestScore = aVarScore[iVar];
+      iBestVarAge = aVarLastChange[iVar];
+    }
+  }
 }
 
 /**
@@ -128,7 +343,7 @@ void PickBestVarInRandUNSATClause() {
     iScore = GetScore(iVar);
 
     if (iScore < iBestScore ||
-          (iScore == iBestScore && aVarLastChange[iVar] < iBestVarAge) )
+        (iScore == iBestScore && aVarLastChange[iVar] < iBestVarAge) )
     {
       iFlipCandidate = iVar;
       iBestScore = iScore;
@@ -140,7 +355,9 @@ void PickBestVarInRandUNSATClause() {
 
 void UpdateClauseWeightsSWT() {
   IncrementUNSATClauseWeights();
-  SmoothSWT();
+  if (iTotalPenaltyINT / iNumClauses > iAvgClauseWeightThreshold) {
+    SmoothSWT();
+  }
 }
 
 /**
@@ -150,226 +367,52 @@ void UpdateClauseWeightsSWT() {
  * PRE: As with any other smoothing scheme (as far as I know),
  *  assumes bPen == TRUE (since smoothing of clause weights
  *  is meaningless if clause weights are not being used)
- * POST: If the average clause weight has exceeded a threshold,
- *  the clause weights of all currently UNSAT clauses are smoothed.
+ *
+ * POST: The clause weights of all currently UNSAT clauses are smoothed.
+ * POST: The sum total of all clause penalties is updated accordingly.
  */
 void SmoothSWT() {
+  UINT32 iFalseClauseIndex, i;
+  UINT32 iClause, iVar;
+  UINT32 oldClausePen, newClausePen;
+  SINT32 penChange;
+  LITTYPE *pLit;
+
   UINT32  iAvgClausePenalty = iTotalPenaltyINT / iNumClauses;
 
-  if (iAvgClausePenalty  < iAvgClauseWeightThreshold)
-    return;
+  for (iFalseClauseIndex = 0; iFalseClauseIndex < iNumFalse; iFalseClauseIndex++) {
+    iClause = aFalseList[iFalseClauseIndex];
+    oldClausePen = aClausePenaltyINT[iClause];
+    newClausePen = (UINT32) ((fDCCAp + FLT_EPSILON) * aClausePenaltyINT[iClause]) +
+                   (UINT32) ((fDCCAq + FLT_EPSILON) * iAvgClausePenalty);
+    aClausePenaltyINT[iClause] = newClausePen;
+    penChange = (newClausePen - oldClausePen);
+    iTotalPenaltyINT += penChange;
 
-  UINT32 i;
-  UINT32 clause;
+    /* If decreasing this clause's penalty causes the penalty to go down to 1,
+     *  this clause is no longer considered to be penalized. */
+    if (aClausePenaltyINT[iClause] == 1 && penChange < 0) {
+      RemoveFromList1(iClause, aFalseList, aFalseListPos, &iNumFalse);
+      iFalseClauseIndex--;
+    }
 
-  for (i = 0; i < iNumFalse; i++) {
-    clause = aFalseList[i];
-    aClausePenaltyINT[clause] = (UINT32) ( (fDCCAp + FLT_EPSILON) * aClausePenaltyINT[clause]) +
-                                (UINT32) ( (fDCCAq + FLT_EPSILON) * iAvgClausePenalty);
+    /* All variables in this clause have their scores updated in accordance with the change in
+     *  clause penalty, for flipping any of these variables would make the clause SAT */
+    pLit = pClauseLits[iClause];
+    for (i = 0; i < aClauseLen[iClause]; i++) {
+      iVar = GetVarFromLit(*pLit);
+      UpdateScore(iVar, -penChange);
+
+      /* Update decreasing promising variables. */
+      // TODO: Move this out of here for increased modularity, so that this function does not depend on aDecPromVars.
+      if (bPromisingList && !aIsDecPromVar[iVar] && (aVarPenScore[iVar] < 0) && (aVarLastChange[iVar] < iStep - 1)) {
+        AddToList2(iVar, aDecPromVarsList, aDecPromVarsListPos, &iNumDecPromVars, aIsDecPromVar);
+      }
+      pLit++;
+    }
   }
 }
 
 void IncrementUNSATClauseWeights() {
-  // TODO: Implement and move to ubcsat-triggers.c (or link to an already-existing function there)
-}
-
-void CreateConfCheckingVars() {
-  CreateCSDvars();
-  CreateNVDvars();
-  CreateSDvars();
-}
-
-void CreateSDvars() {
-  SDvarsList       = AllocateRAM((iNumVars+1) * sizeof(UINT32));
-  SDvarsListPos    = AllocateRAM((iNumVars+1) * sizeof(UINT32));
-}
-
-void CreateNVDvars() {
-  NVDvarsList      = AllocateRAM((iNumVars+1) * sizeof(UINT32));
-  NVDvarsListPos   = AllocateRAM((iNumVars+1) * sizeof(UINT32));
-  NVchangedList    = AllocateRAM((iNumVars+1) * sizeof(BOOL));
-}
-
-void CreateCSDvars() {
-  CSDvarsList      = AllocateRAM((iNumVars+1) * sizeof(UINT32));
-  CSDvarsListPos   = AllocateRAM((iNumVars+1) * sizeof(UINT32));
-  CSchangedList    = AllocateRAM((iNumVars+1) * sizeof(BOOL));
-}
-
-void InitSDvars() {
-  UINT32 j;
-
-  numSDvars = 0;
-
-  for (j = 1; j <= iNumVars; j++) {
-    SDvarsListPos[j] = 0;
-  }
-}
-
-void InitCSDvars() {
-  UINT32 j;
-
-  numCSDvars = 0;
-
-  for (j = 1; j <= iNumVars; j++) {
-    CSDvarsListPos[j] = 0;
-    CSchangedList[j] = TRUE;
-  }
-}
-
-void InitNVDvars() {
-  UINT32 j;
-
-  numNVDvars = 0;
-
-  for (j = 1; j <= iNumVars; j++) {
-    NVDvarsListPos[j] = 0;
-    NVchangedList[j] = TRUE;
-  }
-}
-
-// If CSchanged and NVchanged are up-to-date, then it is trivial to check
-//  that the score is correct for each variable.
-void UpdateVarConfigurations() {
-  UpdateCSDvars();
-  UpdateNVDvars();
-  // TODO: This should probably be moved out of conf-checking
-  UpdateSDvars();
-}
-
-void UpdateSDvars() {
-
-}
-
-
-void UpdateNVchanged(UINT32 flippedVar) {
-  NVchangedList[flippedVar] = FALSE;
-
-  UINT32 neighborVarIndex;
-  for (neighborVarIndex = 0; neighborVarIndex < aNumVarsShareClause[flippedVar]; neighborVarIndex++) {
-    UINT32 neighborVar = pVarsShareClause[flippedVar][neighborVarIndex];
-    NVchangedList[neighborVar] = TRUE;
-  }
-}
-
-/**
- * If using clause weights, this function MUST be called after
- *  clause weights have been updated
- */
-void UpdateNVDvars() {
-  UpdateConfigurationDecreasing(NVchangedList, NVDvarsList, NVDvarsListPos, &numNVDvars);
-}
-
-/**
- * If using clause weights, this function MUST be called after
- *  clause weights have been updated
- */
-void UpdateCSDvars() {
-  UpdateConfigurationDecreasing(CSchangedList, CSDvarsList, CSDvarsListPos, &numCSDvars);
-}
-
-void UpdateConfigurationDecreasing(BOOL* confChangedList, UINT32* confDecreasingSet,
-                                      UINT32* confDecreasingSetPos, UINT32* pointerToSetSize)
-{
-  UINT32 i;
-  UINT32 numChanges = *pointerToSetSize;
-
-  // cycle through all the variables whose scores have changed this step
-  for(i = 0; i < numChanges; i++) {
-    UINT32 var = aChangeList[i];
-
-    // add vars that have become "configuration changed decreasing"
-    if (confChangedList[var] && !confDecreasingSetPos[var] && isDecreasing(var)) {
-      confDecreasingSet[ *pointerToSetSize ] = var;
-      (*pointerToSetSize)++;
-    }
-      // remove vars that are no longer "configuration changed decreasing"
-    else if (confDecreasingSetPos[var] && !isDecreasing(var)) {
-      RemoveVarFromSet(var, confDecreasingSet, confDecreasingSetPos, pointerToSetSize);
-    }
-  }
-}
-
-/**
- * PRE: Flipping variable iFlipCandidate has caused the state of
- *  the given clause to change.
- *
- * POST: All variables that appear in the clause as literals are
- *  added to the list of variables whose Clause State-based configuration
- *  has changed since their last flip, if they are not already present
- *  in that list.
- * POST: Global variable iFlipCandidate is removed from the list of
- *  Clause States Configuration Changed vars.
- *
- * INVARIANT: CSchangedList contains numCSchanged variables
- * INVARIANT: numCSchanged points to the current last "filled" slot in
- *  CSchangedList. This applies even when numCSchanged == 0, since the
- *  zeroth index of CSchangedList is reserved as a "null" space.
- * INVARIANT: Each entry in CSchangedListPos is either the 1-based index
- *  of the position at which the variable with the corresponding index
- *  occurs in CSchangedList, or 0, which is reserved to indicate that
- *  variable does NOT occur in CSchangedList.
- */
-void UpdateCSchanged(UINT32 toggledClause, UINT32 exceptVar) {
-  UINT32 litIndex;
-
-  // Set the clause states-based configuration of each variable in
-  //  this clause is to TRUE, with the exception of the given variable.
-  for (litIndex = 0; litIndex < aClauseLen[toggledClause]; litIndex++) {
-    UINT32 curVar = GetVar(toggledClause, litIndex);
-    if (curVar != exceptVar){
-      CSchangedList[curVar] = TRUE;
-    }
-  }
-
-}
-
-void RemoveVarFromSet(UINT32 varToRemove, UINT32 *varSet, UINT32 *varSetPositions, UINT32 *pointerToSetSize)
-{
-  UINT32 varPos = varSetPositions[ varToRemove ];
-  UINT32 setSize = *pointerToSetSize;
-
-  if (varPos) { // varPos == 0 means the variable is not in the set
-    // Move the last variable in the list to the position
-    //  previously held by the variable being removed
-    varSet[varPos] = varSet[setSize];
-    varSet[setSize] = 0;
-    (*pointerToSetSize)--;
-    varSetPositions[varToRemove] = 0;
-  }
-}
-
-void PickCSDvar() {
-  PickBestOldestVar(CSDvarsList, numCSDvars);
-}
-
-void PickNVDvar() {
-  PickBestOldestVar(NVDvarsList, numNVDvars);
-}
-
-void PickSDvar() {
-  // TODO: make this not rely on SDvarsList, which may become deprecated
-  PickBestOldestVar(SDvarsList, numSDvars);
-}
-
-/**
- * Find the variable with the best score, breaking ties
- *  in favor of the least recently-flipped variable.
- */
-void PickBestOldestVar(UINT32 *varList, UINT32 listSize) {
-  UINT32 iVar;
-  SINT32 iBestScore = bPen ? iTotalPenaltyINT : iNumClauses;
-  UINT32 iBestVarAge = iStep;
-  UINT32 i;
-
-  for (i = 0; i < listSize; i ++) {
-    iVar = varList[i];
-    if (aVarScore[iVar] < iBestScore ||
-        (aVarScore[iVar] == iBestScore && aVarLastChange[iVar] < iBestVarAge) )
-    {
-      iFlipCandidate = iVar;
-      iBestScore = aVarScore[iVar];
-      iBestVarAge = aVarLastChange[iVar];
-    }
-  }
+  ScaleSparrow();
 }

@@ -219,7 +219,7 @@ void SmoothSparrow() {
   UINT32 iClause;
   UINT32 iLoopMax;
 
-  /* Because iNumPenClauseList can change, keep track of # Initial Clauses in list */
+  /* Because iNumPenClauses can change, keep track of # Initial Clauses in list */
   iLoopMax = iNumPenClauses;
 
   /* Decrement the penalties of all currently SAT clauses. */
@@ -234,27 +234,30 @@ void SmoothSparrow() {
       /* If decrementing this clause's penalty causes the penalty to go down to 1,
        *  this clause is no longer considered to be penalized. */
       if (aClausePenaltyINT[iClause] == 1) {
-        RemoveFromList1(iClause, aPenClauseList, aPenClauseListPos, iNumPenClauses)
+        RemoveFromList1(iClause, aPenClauseList, aPenClauseListPos, &iNumPenClauses);
       }
 
       /* If this clause has only 1 true literal, decrementing this clause's score
        *  decreases the score of that literal's backing variable */
       if (aNumTrueLit[iClause] == 1) {
         iVar = aCritSat[iClause];
-        aVarPenScore[iVar]--;
+        UpdateScore(iVar, -1);
 
         /* Update decreasing promising variables. */
         // TODO: Move this out of here for increased modularity, so that this function does not depend on aDecPromVars.
         if ((!aIsDecPromVar[iVar]) && (aVarPenScore[iVar] < 0 ) && (aVarLastChange[iVar] < iStep - 1)) {
-          aDecPromVarsList[iNumDecPromVars++] = iVar;
-          aIsDecPromVar[iVar] = 1;
+          AddToList2(iVar, aDecPromVarsList, aDecPromVarsListPos, &iNumDecPromVars, aIsDecPromVar);
         }
       }
     }
   }
 }
 
-
+/**
+ * POST: Increments the weights of all UNSAT clauses, updating variable scores
+ *  accordingly.
+ * POST: aDecPromVars is updated accordingly.
+ */
 void ScaleSparrow() {
   UINT32 j;
   UINT32 k;
@@ -274,7 +277,7 @@ void ScaleSparrow() {
 
     /* A clause penalty of 2 or greater earns this clause a spot on the list of penalized clauses. */
     if (aClausePenaltyINT[iClause] == 2) {
-      AddToList1(iClause, aPenClauseList, aPenClauseListPos, iNumPenClauses)
+      AddToList1(iClause, aPenClauseList, aPenClauseListPos, &iNumPenClauses);
     }
 
     /* All variables in this clause have their scores decremented in accordance with the change in
@@ -282,12 +285,12 @@ void ScaleSparrow() {
     pLit = pClauseLits[iClause];
     for (k = 0; k < aClauseLen[iClause]; k++) {
       iVar = GetVarFromLit(*pLit);
-      aVarPenScore[iVar]--;
+      UpdateScore(iVar, -1);
 
       /* Update decreasing promising variables. */
       // TODO: Move this out of here for increased modularity, so that this function does not depend on aDecPromVars.
-      if ((!aIsDecPromVar[iVar]) && (aVarPenScore[iVar] < 0) && (aVarLastChange[iVar] < iStep - 1)) {
-        AddToList2(iVar, aDecPromVarsList, aDecPromVarsListPos, iNumDecPromVars, aIsDecPromVar)
+      if (bPromisingList && !aIsDecPromVar[iVar] && (aVarPenScore[iVar] < 0) && (aVarLastChange[iVar] < iStep - 1)) {
+        AddToList2(iVar, aDecPromVarsList, aDecPromVarsListPos, &iNumDecPromVars, aIsDecPromVar);
       }
       pLit++;
     }
@@ -306,9 +309,6 @@ void FlipSparrow() {
 
   SINT32 iPenalty;
 
-  UINT32 iNumNeighbor;
-  UINT32 *pNeighbor;
-
   if (iFlipCandidate == 0) {
     return;
   }
@@ -318,7 +318,7 @@ void FlipSparrow() {
   litWasTrue = GetTrueLit(iFlipCandidate);
   litWasFalse = GetFalseLit(iFlipCandidate);
 
-  aVarValue[iFlipCandidate] = !aVarValue[iFlipCandidate];
+  aVarValue[iFlipCandidate] = (UINT32) !aVarValue[iFlipCandidate];
 
   pClause = pLitClause[litWasTrue];
   for (j=0;j<aNumLitOcc[litWasTrue];j++) {

@@ -552,7 +552,7 @@ void SmoothPAWS() {
        all the way to iLoopMax */
 
     if (aClausePenaltyINT[iClause]==1) {
-      RemoveFromList1(iClause, aPenClauseList, aPenClauseListPos, iNumPenClauses)
+      RemoveFromList1(iClause, aPenClauseList, aPenClauseListPos, &iNumPenClauses);
     }
 
     /* For all false clauses, the 'make' score for each variable in the clause

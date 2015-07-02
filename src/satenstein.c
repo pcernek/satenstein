@@ -420,12 +420,12 @@ void EnableDisableTrigger() {
    *  promising lists based on configuration.
    */
   if (bPromisingList && iDecStrategy == PICK_DCCA) {
-    performClauseConfChecking = TRUE;
-    performNeighborConfChecking = TRUE;
+    bPerformClauseConfChecking = TRUE;
+    bPerformNeighborConfChecking = TRUE;
   }
   else { // TODO: Make this more flexible so that clause and neighbor configuration checking can be run independently
-    performClauseConfChecking = FALSE;
-    performNeighborConfChecking = FALSE;
+    bPerformClauseConfChecking = FALSE;
+    bPerformNeighborConfChecking = FALSE;
   }
 
   if (iHeuristic == H_PICK_SPARROWPROBDIST) {

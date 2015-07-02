@@ -245,6 +245,7 @@ void InitTrackChangesW();
 void UpdateTrackChangesW();
 void FlipTrackChangesW();
 
+BOOL bTrackChanges = FALSE;
 UINT32 iNumChanges;
 UINT32 *aChangeList;
 SINT32 *aPrevVarScore;
@@ -2596,6 +2597,7 @@ void UpdateVarLastChange() {
 
 
 void CreateTrackChanges() {
+  bTrackChanges = TRUE;
   aChangeList = AllocateRAM((iNumVars+1) * sizeof(UINT32));
   aStepOfPrevVarScore = AllocateRAM((iNumVars+1) * sizeof(UINT32));
   aPrevVarScore = AllocateRAM((iNumVars+1) * sizeof(UINT32));
@@ -3364,6 +3366,8 @@ void CreateClausePenaltyINT() {
 
 void InitClausePenaltyINT() {
   UINT32 j;
+
+  bPen = TRUE;
   
   for (j=0;j<iNumClauses;j++) {
     aClausePenaltyINT[j] = iInitPenaltyINT;
@@ -4470,8 +4474,8 @@ void BranchFactorW() {
 UINT32 iSUDSLastNumFalse;
 FLOAT fSUDSfLastSumFalseW;
 
-BOOL performClauseConfChecking;
-BOOL performNeighborConfChecking;
+BOOL bPerformClauseConfChecking;
+BOOL bPerformNeighborConfChecking;
 
 void InitStepsUpDownSide() {
   iNumUpSteps = 0;
@@ -4694,7 +4698,7 @@ void AddNeighboringDecPromVars() {
   for (j = 0; j < aNumVarsShareClause[iFlipCandidate]; j++) {
     iVar = *pNeighbor;
     if (GetScore(iVar) < 0) {
-      AddToList2(iVar, aDecPromVarsList, aDecPromVarsListPos, iNumDecPromVars, aIsDecPromVar)
+      AddToList2(iVar, aDecPromVarsList, aDecPromVarsListPos, &iNumDecPromVars, aIsDecPromVar);
     }
     pNeighbor++;
   }
@@ -4787,19 +4791,49 @@ void FlipTrackChangesFCLW() {
   }
 }
 
-
-bool isDecreasing(UINT32 var) {
-  return aVarScore[var] < 0;
+inline bool isDecreasing(UINT32 var) {
+  return bPen ? aVarPenScore[var] < 0 : aVarScore[var] < 0;
 }
 
 void CreateDecPromVars() {
 
+  bPromisingList = TRUE;
   aDecPromVarsList = AllocateRAM((iNumVars+1) * sizeof(UINT32));
   aIsDecPromVar = AllocateRAM((iNumVars+1) * sizeof(BOOL));
   aDecPromVarsListPos = AllocateRAM((iNumVars+1) * sizeof(UINT32));
 
 }
 
+/**
+ * PRE: Assumes that scores have already been computed for variables.
+ *
+ * POST: All variables with score < 0 are added to the given list of
+ *  decreasing variables. Supporting state arrays are updated accordingly.
+ */
+void InitDecVarLists(UINT32* decVarList, UINT32* varListPos,
+                     UINT32* pListSize, BOOL* isInList)
+{
+  UINT32 iVar;
+
+  *pListSize = 0;
+
+  for (iVar = 1; iVar <= iNumVars; iVar++) {
+    isInList[iVar] = FALSE;
+    if (GetScore(iVar) < 0) {
+      AddToList2(iVar, decVarList, varListPos, pListSize, isInList);
+    }
+  }
+}
+
+void InitVarConfiguration(BOOL* configHasChanged) {
+  UINT32 iVar;
+
+  for (iVar = 1; iVar <= iNumVars; iVar++) {
+    configHasChanged[iVar] = TRUE;
+  }
+}
+
+// TODO: Replace the code in this function with a call to InitDecVarLists
 void InitDecPromVars() {
 
   UINT32 j;
@@ -4831,7 +4865,7 @@ void UpdateDecPromVars() {
 
       // The variable just flipped cannot be a promising decreasing variable.
       if (aIsDecPromVar[iFlipCandidate]) {
-        RemoveFromList2(iFlipCandidate, aDecPromVarsList, aDecPromVarsListPos, iNumDecPromVars, aIsDecPromVar)
+        RemoveFromList2(iFlipCandidate, aDecPromVarsList, aDecPromVarsListPos, &iNumDecPromVars, aIsDecPromVar);
       }
 
       break;
@@ -4844,7 +4878,7 @@ void UpdateDecPromVars() {
       for (i = 0; i <  iNumDecPromVars; i++) {
         iVar = aDecPromVarsList[i];
         if ((aVarScore[iVar] >= 0) || (iVar == iFlipCandidate)) {
-          RemoveFromList2(iVar, aDecPromVarsList, aDecPromVarsListPos, iNumDecPromVars, aIsDecPromVar)
+          RemoveFromList2(iVar, aDecPromVarsList, aDecPromVarsListPos, &iNumDecPromVars, aIsDecPromVar);
         }
       }
 
@@ -4869,7 +4903,7 @@ void AddDecPromVarsThatWerePositive() {
   for (j = 0; j < iNumChanges; j++) {
     iVar = aChangeList[j];
     if ((aVarScore[iVar] < 0) && (aPrevVarScore[iVar] >= 0)) {
-      AddToList2(iVar, aDecPromVarsList, aDecPromVarsListPos, iNumDecPromVars, aIsDecPromVar)
+      AddToList2(iVar, aDecPromVarsList, aDecPromVarsListPos, &iNumDecPromVars, aIsDecPromVar);
     }
   }
 }
@@ -5122,7 +5156,10 @@ void FlipTrackChangesFCL() {
   if (iUpdateSchemePromList == UPDATE_GNOVELTYPLUS) {
     UpdateNeighborDecPromVarStatus();
   }
-  iNumChanges = 0;
+  // TODO: This is a temporary conditional so as not to break anything.
+  if ( !(bPerformNeighborConfChecking || bPerformClauseConfChecking) ) {
+    iNumChanges = 0;
+  }
 
   // get the indices of the literals for the variable we're about to flip,
   //  distinguishing between the ones that were previously true
@@ -5133,14 +5170,14 @@ void FlipTrackChangesFCL() {
   // Flip the candidate!!
   aVarValue[iFlipCandidate] = (UINT32) !aVarValue[iFlipCandidate];
 
-  if (performNeighborConfChecking) {
-    RemoveVarFromSet(iFlipCandidate, NVDvarsList, NVDvarsListPos, &numNVDvars);
+  if (bPerformNeighborConfChecking) {
+    RemoveFromList2(iFlipCandidate, aNVDvars, aNVDvarsPos, &iNumNVDvars, aIsNVDvar);
     UpdateNVchanged(iFlipCandidate);
   }
 
-  if (performClauseConfChecking) {
-    RemoveVarFromSet(iFlipCandidate, CSDvarsList, CSDvarsListPos, &numCSDvars);
-    CSchangedList[iFlipCandidate] = FALSE;
+  if (bPerformClauseConfChecking) {
+    RemoveFromList2(iFlipCandidate, aCSDvars, aCSDvarsPos, &iNumCSDvars, aIsCSDvar);
+    aCSchanged[iFlipCandidate] = FALSE;
   }
 
   // pClause is a pointer to the list of clauses containing literals that were TRUE
@@ -5170,8 +5207,8 @@ void FlipTrackChangesFCL() {
 
       UpdateChange(iFlipCandidate);
 
-      if (performClauseConfChecking) {
-        UpdateCSchanged(*pClause, iFlipCandidate);
+      if (bPerformClauseConfChecking) {
+        UpdateCSchanged(*pClause);
       }
 
       // since a clause containing this variable just became false, flipping this variable again
@@ -5228,12 +5265,11 @@ void FlipTrackChangesFCL() {
     // if flipping this variable made this clause become sat...
     if (aNumTrueLit[*pClause] == 1) {
 
-      if (performClauseConfChecking) {
-        UpdateCSchanged(*pClause, iFlipCandidate);
+      if (bPerformClauseConfChecking) {
+        UpdateCSchanged(*pClause);
       }
 
-      aFalseList[aFalseListPos[*pClause]] = aFalseList[--iNumFalse];
-      aFalseListPos[aFalseList[iNumFalse]] = aFalseListPos[*pClause];
+      RemoveFromList1(*pClause, aFalseList, aFalseListPos, &iNumFalse);
 
       /* This is for certain cases of Novelty */
       if (iSelectClause == 5 || iSelectClause == 6) {
@@ -5370,4 +5406,73 @@ UpdateVarInFalse();
 void SpecialUpdateMakeBreak()
 {
 UpdateMakeBreak();
+}
+
+inline SINT32 GetScore(UINT32 var) {
+  return (bPen ? aVarPenScore[var] : aVarScore[var]);
+}
+
+inline void SetScore(UINT32 V, SINT32 score) {
+  if (bPen) {
+    aVarPenScore[V] = score;
+  } else {
+    aVarScore[V] = score;
+  }
+  if (bTrackChanges) {
+    UpdateChange(V);
+  }
+}
+
+inline void UpdateScore(UINT32 V, SINT32 delta) {
+  if (bPen) {
+    aVarPenScore[V] += delta;
+  } else {
+    aVarScore[V] += delta;
+  }
+  if (bTrackChanges) {
+    UpdateChange(V);
+  }
+}
+
+inline void RemoveFromList1(UINT32 item, UINT32* list, UINT32* listPositions, UINT32* pListSize) {
+  list[listPositions[item]] = list[--(*pListSize)];
+  listPositions[list[*pListSize]] = listPositions[item];
+}
+
+inline void RemoveFromList2(UINT32 item, UINT32* list, UINT32* listPositions, UINT32* plistSize, BOOL* isInList) {
+  if (isInList[item]) {
+    UINT32 iLastVar = list[--(*plistSize)];
+    list[listPositions[item]] = iLastVar;
+    listPositions[iLastVar] = listPositions[item];
+    isInList[item] = FALSE;
+  }
+}
+
+inline void AddToList1(UINT32 item, UINT32* list, UINT32* listPositions, UINT32* plistSize) {
+  list[*plistSize] = item;
+  listPositions[item] = (*plistSize)++;
+}
+
+inline void AddToList2(UINT32 item, UINT32* list, UINT32* listPositions, UINT32* plistSize, BOOL* isInList) {
+  if (!isInList[item]) {
+    list[*plistSize] = item;
+    listPositions[item] = (*plistSize)++;
+    isInList[item] = TRUE;
+  }
+}
+
+inline void UpdatePromVars(UINT32 iVar) {
+  if ((!aIsDecPromVar[iVar]) && (aVarScore[iVar] < 0 ) && (aVarLastChange[iVar] < iStep - 1))
+  {
+    aDecPromVarsList[iNumDecPromVars++] = iVar;
+    aIsDecPromVar[iVar] = TRUE;
+  }
+}
+
+inline void UpdateChange(UINT32 iVar) {
+  aPrevVarScore[iVar] = GetScore(iVar);
+  if (aStepOfPrevVarScore[iVar] != iStep) {
+    aStepOfPrevVarScore[iVar] = iStep;
+    aChangeList[iNumChanges++] = iVar;
+  }
 }

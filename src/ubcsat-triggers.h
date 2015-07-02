@@ -26,55 +26,18 @@
 #include "ubcsat-types.h"
 #include "ubcsat-lit.h"
 
-#define GetScore(var) (bPen ? aVarPenScore[var] : aVarScore[var])
+inline void UpdateChange(UINT32 iVar);
+inline void UpdatePromVars(UINT32 iVar);
 
-#define SetScore(var, score) { \
-  if (bPen) { \
-    aVarScore[var] = score;\
-  } else { \
-    aVarPenScore[var] = score; \
-  }\
-}
+inline SINT32 GetScore(UINT32 var) ;
+inline void SetScore(UINT32 V, SINT32 score);
+inline void UpdateScore(UINT32 V, SINT32 delta);
 
-#define RemoveFromList1(item, list, listPositions, listSize) { \
-  list[listPositions[item]] = list[--listSize]; \
-  listPositions[list[listSize]] = listPositions[item]; \
-}
-#define RemoveFromList2(item, list, listPositions, listSize, listMemberships) { \
-  if (listMemberships[item]) { \
-    list[listPositions[item]] = list[--listSize]; \
-    listPositions[list[listSize]] = listPositions[item]; \
-    listMemberships[item] = FALSE; \
-  } \
-}
+inline void RemoveFromList1(UINT32 item, UINT32* list, UINT32* listPositions, UINT32* pListSize);
+inline void RemoveFromList2(UINT32 item, UINT32* list, UINT32* listPositions, UINT32* plistSize, BOOL* isInList);
 
-#define AddToList1(item, list, listPositions, listSize) { \
-  list[listSize] = item; \
-  listPositions[item] = listSize++; \
-}
-#define AddToList2(item, list, listPositions, listSize, listMemberships) { \
-  if (!listMemberships[item]) { \
-    list[listSize] = item; \
-    listPositions[item] = listSize++; \
-    listMemberships[item] = TRUE; \
-  } \
-}
-
-#define UpdatePromVars() {\
-    if ((!aIsDecPromVar[iVar]) && (aVarScore[iVar] < 0 ) && (aVarLastChange[iVar] < iStep - 1)) \
-    { \
-        aDecPromVarsList[iNumDecPromVars++] = iVar; \
-        aIsDecPromVar[iVar] = TRUE; \
-    } \
-}
-
-#define UpdateChange(var) { \
-  if (aStepOfPrevVarScore[var] != iStep) { \
-    aPrevVarScore[var] = bPen ? aVarPenScore[var] : aVarScore[var]; \
-    aStepOfPrevVarScore[var] = iStep; \
-    aChangeList[iNumChanges++] = var; \
-  } \
-}
+inline void AddToList1(UINT32 item, UINT32* list, UINT32* listPositions, UINT32* plistSize);
+inline void AddToList2(UINT32 item, UINT32* list, UINT32* listPositions, UINT32* plistSize, BOOL* isInList);
 
 void AddDataTriggers();
 
@@ -240,6 +203,7 @@ extern UINT32 iVarLastChangeReset;
     aStepOfPrevVarScore[j]    the step of the last change for variable[j]
 */
 
+extern BOOL bTrackChanges;
 extern UINT32 iNumChanges;
 extern UINT32 *aChangeList;
 extern SINT32 *aPrevVarScore;
@@ -251,6 +215,23 @@ extern UINT32 *aChangeListW;
 extern FLOAT *aChangeOldScoreW;
 extern UINT32 *aChangeLastStepW;
 
+
+void CreateLitOccurence();
+void CreateDefaultStateInfo();
+void CreateFalseClauseList();
+void CreateTrackChanges();
+void CreateVarScore();
+void CreateVarsShareClauses();
+
+void InitDefaultStateInfo();
+void InitVarScore();
+void InitFalseClauseList();
+void InitTrackChanges();
+void FlipTrackChangesFCL();
+
+void InitDecVarLists(UINT32* decVarList, UINT32* varListPos,
+                     UINT32*pListSize, BOOL* isInList);
+void InitVarConfiguration(BOOL* configHasChanged);
 
 /***** Trigger DecPromVars *****/
 void CreateDecPromVars();
@@ -719,6 +700,6 @@ extern SINT32 *aVarPenScore;
 extern BOOL bPen;
 extern UINT32 *aVarLastSatisfied;
 
-extern BOOL performClauseConfChecking;
-extern BOOL performNeighborConfChecking;
+extern BOOL bPerformClauseConfChecking;
+extern BOOL bPerformNeighborConfChecking;
 #endif

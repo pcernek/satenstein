@@ -16,8 +16,6 @@ UINT32 *aNVDvars;
 UINT32 *aNVDvarsPos;
 UINT32 iNumNVDvars;
 
-BOOL*   aConfChanged;
-
 UINT32 *aSDvars;
 UINT32 iNumSDvars;
 UINT32 *aSDvarsPos;
@@ -179,7 +177,9 @@ void UpdateCSchanged(UINT32 toggledClause) {
   for (litIndex = 0; litIndex < aClauseLen[toggledClause]; litIndex++) {
     UINT32 curVar = GetVar(toggledClause, litIndex);
     aCSchanged[curVar] = TRUE;
-    UpdateChangeShallow(curVar);
+    /* CHECK: This should not be necessary, since every time a clause changes configuration,
+     *  the score of all the variables therein also changes.*/
+//    UpdateChangeShallow(curVar);
   }
 
   aCSchanged[iFlipCandidate] = FALSE;
@@ -235,8 +235,6 @@ void UpdateNVDvars() {
 /**
  * PRE: The scores of certain variables have changed, and these variables
  *  have been marked as such by being added to aChangeList.
- * PRE: The Neighbor Variable-based configuration of certain variables
- *  has changed.
  *
  * POST: The list of variables that are Significant Decreasing (SD)
  *  is updated.
@@ -303,11 +301,11 @@ void PickBestOldestVar(UINT32 *varList, UINT32 listSize) {
 
   for (i = 0; i < listSize; i ++) {
     iVar = varList[i];
-    if (aVarScore[iVar] < iBestScore ||
-        (aVarScore[iVar] == iBestScore && aVarLastChange[iVar] < iBestVarAge) )
+    if (GetScore(iVar) < iBestScore ||
+        (GetScore(iVar) == iBestScore && aVarLastChange[iVar] < iBestVarAge) )
     {
       iFlipCandidate = iVar;
-      iBestScore = aVarScore[iVar];
+      iBestScore = GetScore(iVar);
       iBestVarAge = aVarLastChange[iVar];
     }
   }

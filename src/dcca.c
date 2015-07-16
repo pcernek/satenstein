@@ -16,6 +16,8 @@ UINT32 *aNVDvars;
 UINT32 *aNVDvarsPos;
 UINT32 iNumNVDvars;
 
+BOOL*   aConfChanged;
+
 UINT32 *aSDvars;
 UINT32 iNumSDvars;
 UINT32 *aSDvarsPos;
@@ -177,6 +179,7 @@ void UpdateCSchanged(UINT32 toggledClause) {
   for (litIndex = 0; litIndex < aClauseLen[toggledClause]; litIndex++) {
     UINT32 curVar = GetVar(toggledClause, litIndex);
     aCSchanged[curVar] = TRUE;
+    UpdateChangeShallow(curVar);
   }
 
   aCSchanged[iFlipCandidate] = FALSE;
@@ -196,6 +199,7 @@ void UpdateNVchanged(UINT32 flippedVar) {
   for (i = 0; i < aNumVarsShareClause[flippedVar]; i++) {
     UINT32 neighborVar = pVarsShareClause[flippedVar][i];
     aNVchanged[neighborVar] = TRUE;
+    UpdateChangeShallow(neighborVar);
   }
 
   aNVchanged[flippedVar] = FALSE;

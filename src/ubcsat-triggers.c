@@ -2628,15 +2628,15 @@ void UpdateTrackChanges() {
 
   pClause = pLitClause[litWasTrue];
   for (j=0;j<aNumLitOcc[litWasTrue];j++) {
-    if (aNumTrueLit[*pClause]==0) { 
-      
-      UpdateChange(iFlipCandidate);
+    if (aNumTrueLit[*pClause]==0) {
+
+      UpdateScoreChange(iFlipCandidate);
       aVarScore[iFlipCandidate]--;
 
       pLit = pClauseLits[*pClause];
       for (k=0;k<aClauseLen[*pClause];k++) {
         iVar = GetVarFromLit(*pLit);
-        UpdateChange(iVar);
+        UpdateScoreChange(iVar);
         aVarScore[iVar]--;
         pLit++;
       }
@@ -2646,7 +2646,7 @@ void UpdateTrackChanges() {
       for (k=0;k<aClauseLen[*pClause];k++) {
         if (IsLitTrue(*pLit)) {
           iVar = GetVarFromLit(*pLit);
-          UpdateChange(iVar);
+          UpdateScoreChange(iVar);
           aVarScore[iVar]++;
           aCritSat[*pClause] = iVar;
           break;
@@ -2664,17 +2664,17 @@ void UpdateTrackChanges() {
       pLit = pClauseLits[*pClause];
       for (k=0;k<aClauseLen[*pClause];k++) {
         iVar = GetVarFromLit(*pLit);
-        UpdateChange(iVar);
+        UpdateScoreChange(iVar);
         aVarScore[iVar]++;
         pLit++;
       }
-      UpdateChange(iFlipCandidate);
+      UpdateScoreChange(iFlipCandidate);
       aVarScore[iFlipCandidate]++;
       aCritSat[*pClause] = iFlipCandidate;
     }
     if (aNumTrueLit[*pClause]==2) {
       iVar = aCritSat[*pClause];
-      UpdateChange(iVar);
+      UpdateScoreChange(iVar);
       aVarScore[iVar]--;
     }
     pClause++;
@@ -2719,14 +2719,14 @@ void FlipTrackChanges() {
     if (aNumTrueLit[*pClause]==0) { 
       
       iNumFalse++;
-      
-      UpdateChange(iFlipCandidate);
+
+      UpdateScoreChange(iFlipCandidate);
       aVarScore[iFlipCandidate]--;
 
       pLit = pClauseLits[*pClause];
       for (k=0;k<aClauseLen[*pClause];k++) {
         iVar = GetVarFromLit(*pLit);
-        UpdateChange(iVar);
+        UpdateScoreChange(iVar);
         aVarScore[iVar]--;
         pLit++;
       }
@@ -2736,7 +2736,7 @@ void FlipTrackChanges() {
       for (k=0;k<aClauseLen[*pClause];k++) {
         if (IsLitTrue(*pLit)) {
           iVar = GetVarFromLit(*pLit);
-          UpdateChange(iVar);
+          UpdateScoreChange(iVar);
           aVarScore[iVar]++;
           aCritSat[*pClause] = iVar;
           break;
@@ -2757,17 +2757,17 @@ void FlipTrackChanges() {
       pLit = pClauseLits[*pClause];
       for (k=0;k<aClauseLen[*pClause];k++) {
         iVar = GetVarFromLit(*pLit);
-        UpdateChange(iVar);
+        UpdateScoreChange(iVar);
         aVarScore[iVar]++;
         pLit++;
       }
-      UpdateChange(iFlipCandidate);
+      UpdateScoreChange(iFlipCandidate);
       aVarScore[iFlipCandidate]++;
       aCritSat[*pClause] = iFlipCandidate;
     }
     if (aNumTrueLit[*pClause]==2) {
       iVar = aCritSat[*pClause];
-      UpdateChange(iVar);
+      UpdateScoreChange(iVar);
       aVarScore[iVar]--;
     }
     pClause++;
@@ -5205,7 +5205,7 @@ void FlipTrackChangesFCL() {
         fSumClauseVarFlipCount += fClauseVarFlipCounts[*pClause] + ((FLOAT) 1 / (FLOAT) aClauseLen[*pClause]);;
       }
 
-      UpdateChange(iFlipCandidate);
+      UpdateScoreChange(iFlipCandidate);
 
       if (bPerformClauseConfChecking) {
         UpdateCSchanged(*pClause);
@@ -5221,7 +5221,7 @@ void FlipTrackChangesFCL() {
       pLit = pClauseLits[*pClause];
       for (k = 0; k < aClauseLen[*pClause]; k++) {
         iVar = GetVarFromLit(*pLit);
-        UpdateChange(iVar);
+        UpdateScoreChange(iVar);
         if (bPen) {
           aVarPenScore[iVar] -= aClausePenaltyINT[*pClause];
         }
@@ -5237,7 +5237,7 @@ void FlipTrackChangesFCL() {
       for (k = 0; k < aClauseLen[*pClause]; k++) {
         if (IsLitTrue(*pLit)) {
           iVar = GetVarFromLit(*pLit);
-          UpdateChange(iVar);
+          UpdateScoreChange(iVar);
           if (bPen) {
             aVarPenScore[iVar] += aClausePenaltyINT[*pClause];
           }
@@ -5285,7 +5285,7 @@ void FlipTrackChangesFCL() {
       pLit = pClauseLits[*pClause];
       for (k = 0; k < aClauseLen[*pClause]; k++) {
         iVar = GetVarFromLit(*pLit);
-        UpdateChange(iVar);
+        UpdateScoreChange(iVar);
         if (bPen) {
           aVarPenScore[iVar] += aClausePenaltyINT[*pClause];
         }
@@ -5293,7 +5293,7 @@ void FlipTrackChangesFCL() {
         pLit++;
       }
 
-      UpdateChange(iFlipCandidate);
+      UpdateScoreChange(iFlipCandidate);
       if (bPen) {
         aVarPenScore[iFlipCandidate] += aClausePenaltyINT[*pClause];
       }
@@ -5303,7 +5303,7 @@ void FlipTrackChangesFCL() {
 
     if (aNumTrueLit[*pClause] == 2) {
       iVar = aCritSat[*pClause];
-      UpdateChange(iVar);
+      UpdateScoreChange(iVar);
       if (bPen) {
         aVarPenScore[iVar] -= aClausePenaltyINT[*pClause];
       }
@@ -5419,7 +5419,7 @@ inline void SetScore(UINT32 V, SINT32 score) {
     aVarScore[V] = score;
   }
   if (bTrackChanges) {
-    UpdateChange(V);
+    UpdateScoreChange(V);
   }
 }
 
@@ -5430,7 +5430,7 @@ inline void UpdateScore(UINT32 V, SINT32 delta) {
     aVarScore[V] += delta;
   }
   if (bTrackChanges) {
-    UpdateChange(V);
+    UpdateScoreChange(V);
   }
 }
 
@@ -5469,10 +5469,14 @@ inline void UpdatePromVars(UINT32 iVar) {
   }
 }
 
-inline void UpdateChange(UINT32 iVar) {
+inline void UpdateScoreChange(UINT32 iVar) {
   aPrevVarScore[iVar] = GetScore(iVar);
   if (aStepOfPrevVarScore[iVar] != iStep) {
     aStepOfPrevVarScore[iVar] = iStep;
     aChangeList[iNumChanges++] = iVar;
   }
+}
+
+inline void UpdateChangeShallow(UINT32 iVar) {
+  aChangeList[iNumChanges++] = iVar;
 }

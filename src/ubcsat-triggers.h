@@ -26,7 +26,8 @@
 #include "ubcsat-types.h"
 #include "ubcsat-lit.h"
 
-inline void UpdateChange(UINT32 iVar);
+inline void UpdateScoreChange(UINT32 iVar);
+inline void UpdateChangeShallow(UINT32 iVar);
 inline void UpdatePromVars(UINT32 iVar);
 
 inline SINT32 GetScore(UINT32 var) ;

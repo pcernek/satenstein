@@ -10,18 +10,34 @@
 #include <float.h>
 
 /***** lists of "configuration changed decreasing" vars ******/
+/*
+ * aCSchanged[v] = whether the clause configuration of variable v has changed
+ *                 since the last time v was flipped
+ * aCSDvars[i]   = the ith variable for which aCSchanged == TRUE and
+ *                 isDecreasing(v) == TRUE
+ */
 extern BOOL*   aCSchanged;
 extern UINT32* aCSDvars;
 extern UINT32  iNumCSDvars;
 extern UINT32* aCSDvarsPos;
 extern BOOL*   aIsCSDvar;
 
+/*
+ * aNVchanged[v] = whether the neighbor configuration of variable v has changed
+ *                 since the last time v was flipped
+ * aNVDvars[i]   = the ith variable for which aNVchanged == TRUE and
+ *                 isDecreasing(v) == TRUE
+ */
 extern BOOL*   aNVchanged;
 extern UINT32* aNVDvars;
 extern UINT32* aNVDvarsPos;
 extern UINT32  iNumNVDvars;
 extern BOOL*   aIsNVDvar;
 
+/**
+ * aSDvars[i]     = whether the negative score of variable i exceeds
+ *                  the average clause weight
+ */
 extern UINT32* aSDvars;
 extern UINT32  iNumSDvars;
 extern UINT32* aSDvarsPos;
@@ -45,16 +61,10 @@ void UpdateCSDvars();
 void UpdateNVDvars();
 void UpdateSDvars();
 
-// TODO: Reconsider the need for the following functions
-void UpdateDCCA();
-void CreateConfCheckingVars();
-void UpdateVarConfigurations();
 void UpdateCSchanged(UINT32 toggledClause);
 void UpdateNVchanged(UINT32 flippedVar);
 void UpdateConfigurationDecreasing(BOOL *aConfChanged, UINT32 *aConfDecVars, UINT32 *aConfDecVarsPos,
                                    UINT32 *pNumConfDecVars, BOOL *isConfDecreasing);
-
-void RemoveVarFromSet(UINT32 varToRemove, UINT32 *varSet, UINT32 *varSetPositions, UINT32 *pointerToSetSize);
 
 void UpdateClauseWeightsSWT();
 
@@ -65,8 +75,6 @@ void SmoothSWT();
 void PickDCCADiversify();
 
 void PickBestVarInRandUNSATClause();
-
-void InitDCCA();
 
 void PickCSDvar();
 void PickNVDvar();

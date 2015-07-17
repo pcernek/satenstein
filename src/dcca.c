@@ -45,7 +45,7 @@ void AddDCCA() {
              "on the diversification step, if the average clause weight exceeds~this threshold, smoothing is performed",
              "",&iAvgClauseWeightThreshold,300);
   AddParmFloat(&pCurAlg->parmList,"-DCCAp","DCCA p param [default %s]","weight of current clause score in SWT smoothing [default %s]","",&fDCCAp,0.3);
-  AddParmFloat(&pCurAlg->parmList,"-DCCAq","DCCA q param [default %s]","weight of average clause score in SWT smoothing [default %s]","",&fDCCAp,0.0);
+  AddParmFloat(&pCurAlg->parmList,"-DCCAq","DCCA q param [default %s]","weight of average clause score in SWT smoothing [default %s]","",&fDCCAq,0.0);
 
   CreateTrigger("PickDCCA",ChooseCandidate,PickDCCA,"","");
 
@@ -387,15 +387,23 @@ void SmoothSWT() {
     oldClausePen = aClausePenaltyINT[iClause];
     newClausePen = (UINT32) ((fDCCAp + FLT_EPSILON) * aClausePenaltyINT[iClause]) +
                    (UINT32) ((fDCCAq + FLT_EPSILON) * iAvgClausePenalty);
+    if (newClausePen < 1) {
+      newClausePen = 1;
+    }
     aClausePenaltyINT[iClause] = newClausePen;
     penChange = (newClausePen - oldClausePen);
     iTotalPenaltyINT += penChange;
 
     /* If decreasing this clause's penalty causes the penalty to go down to 1,
      *  this clause is no longer considered to be penalized. */
-    if (aClausePenaltyINT[iClause] == 1 && penChange < 0) {
-      RemoveFromList1(iClause, aFalseList, aFalseListPos, &iNumFalse);
-      iFalseClauseIndex--;
+    if (newClausePen == 1 && penChange < 0) {
+      RemoveFromList1(iClause, aPenClauseList, aPenClauseListPos, &iNumPenClauses);
+    }
+    /**
+     * Else if increasing this clause's penalty causes the penalty to exceed
+     *  1, this clause is added to the list of penalized clauses. */
+    else if (oldClausePen == 1 && newClausePen >= 2) {
+      AddToList1(iClause, aPenClauseList, aPenClauseListPos, &iNumPenClauses);
     }
 
     /* All variables in this clause have their scores updated in accordance with the change in

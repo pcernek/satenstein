@@ -3367,8 +3367,6 @@ void CreateClausePenaltyINT() {
 void InitClausePenaltyINT() {
   UINT32 j;
 
-  bPen = TRUE;
-  
   for (j=0;j<iNumClauses;j++) {
     aClausePenaltyINT[j] = iInitPenaltyINT;
   }

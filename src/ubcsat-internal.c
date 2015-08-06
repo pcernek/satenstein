@@ -1949,3 +1949,11 @@ BOOL AddUniqueToVarStateList(VARSTATELIST *vsList, VARSTATE vsAdd) {
   }
 }
 
+void ResetTriggers() {
+  UINT32 i;
+  for (i=0; i < listTriggers.iNumItems; i++) {
+    TRIGGER* pTrigger = &aTriggers[i];
+    pTrigger->bActive = FALSE;
+    pTrigger->bDisabled = FALSE;
+  }
+}

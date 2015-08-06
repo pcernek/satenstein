@@ -1038,10 +1038,7 @@ void PerformPickPromisingVar() {
       i = -1;
       for (promVarIndex = 0; promVarIndex < iNumDecPromVars; promVarIndex++) {
         iVar = aDecPromVarsList[promVarIndex];
-        if (!bPen)
-          iScore = aVarScore[iVar];
-        else
-          iScore = aVarPenScore[iVar];
+        iScore = GetScore(iVar);
         if (iScore < 0) {
           if (iScore < iBestScore) {
             iBestScore = iScore;

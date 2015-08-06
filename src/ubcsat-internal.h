@@ -142,6 +142,7 @@ void PrintFullStat(REPORTSTAT *pStat, const char *sStatID, char *sPrintID, FLOAT
 void ParseItemList(ITEMLIST *pList, char *sItems, CALLBACKPTR ItemFunction);
 void PrintUBCSATHeader(REPORT *pRep);
 void SetupUBCSAT();
+void ResetTriggers();
 
 #define GetVarStateBit(VS,B) ((((VS)[(B)>>3])>>(7 - ((B)&0x07)))&0x01)
 VARSTATE NewVarState();

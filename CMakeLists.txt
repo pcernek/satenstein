@@ -54,7 +54,7 @@ set(TEST_FILES ${SOURCE_FILES}
 # TODO: Make it so that all these tests can be run simultaneously.
 #                test/AddRemoveListsTest.cpp
 #                test/DccaTest.cpp
-#                test/JNATest.cpp
+                test/JNATest.cpp
                 )
 
 

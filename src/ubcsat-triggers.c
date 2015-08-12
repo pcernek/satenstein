@@ -2598,6 +2598,7 @@ void UpdateVarLastChange() {
 
 void CreateTrackChanges() {
   bTrackChanges = TRUE;
+  iNumChanges = 0;
   aChangeList = AllocateRAM((iNumVars+1) * sizeof(UINT32));
   aStepOfPrevVarScore = AllocateRAM((iNumVars+1) * sizeof(UINT32));
   aPrevVarScore = AllocateRAM((iNumVars+1) * sizeof(UINT32));

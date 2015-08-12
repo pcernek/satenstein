@@ -13,6 +13,7 @@ extern "C" {
 #include <ubcsat.h>
 #include <ubcsat-globals.h>
 #include <ubcsat-internal.h>
+#include <ubcsat-triggers.h>
 };
 
 using namespace ubcsat;
@@ -59,6 +60,8 @@ extern "C" {
   int getNumClauses();
 
   int getVarAssignment(int varNumber);
+
+  int runInitData();
 
 };
 

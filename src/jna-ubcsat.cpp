@@ -49,13 +49,13 @@ void initLibrary() {
 //  AddLocal();
 }
 
-char** split(const char *command, int* size) {
+char** split(char *command, int* size) {
   char** ret = (char**) malloc(sizeof(char*) * MAXTOTALPARMS);
   const char* programName = "ubcsat";
   ret[0] = (char*) programName;
   char* t;
   int i;
-  for (i = 1, t = strtok((char*)command, " "); t != NULL; ++i) {
+  for (i = 1, t = strtok(command, " "); t != NULL; ++i) {
     ret[i] = t;
     t = strtok(NULL, " ");
   }
@@ -74,7 +74,9 @@ void* initConfig(const char* params) {
   AddLocal();
 
   int* numParams = (int*) malloc(sizeof(int));
-  char** args = split(params, numParams);
+  char* paramsMutable = (char *) malloc((strlen(params) + 1) * sizeof(char));
+  strcpy(paramsMutable, params);
+  char** args = split(paramsMutable, numParams);
 
   UBCSATState * ubcsat = new UBCSATState;
 
@@ -85,44 +87,77 @@ void* initConfig(const char* params) {
   RunProcedures(PostParameters);
   ActivateTriggers((char *) "CheckTimeout");
 
+  free(args);
+  free(numParams);
+  free(paramsMutable);
+
   return ubcsat;
 }
 
 int initProblem(void* ubcsatState, const char* problem) {
-  UBCSATState* state = (UBCSATState *) ubcsatState;
+  // timing code
+//  clock_t t1, t2;
+//  t1 = clock();
 
-  UINT32 j = 0;
+  UINT32 j;
   UINT32 k;
+  UINT32 bIsWCNF;
+  float fDummy;
+  SINT32 l;
+  SINT32 iScanRet;
+  long unsigned int w;
 
-  SINT32 signedVarNum;
 
   LITTYPE *pData;
   LITTYPE *pNextLit;
   LITTYPE *pLastLit;
 
+  FILE *filInput;
+
+  bIsWCNF = FALSE;
+
   iNumClauses = 0;
 
-  std::string cnf(problem);
-  std::istringstream ss(cnf);
-  std::string line;
+  filInput = fmemopen((void *) problem, strlen(problem), "r");
 
-  // Parse CNF header
   while (iNumClauses == 0) {
-    std::getline(ss, line);
+    fgets(sLine,MAXCNFLINELEN,filInput);
+    if (strlen(sLine)==MAXCNFLINELEN-1) {
+      ReportPrint1(pRepErr,"Unexpected Error: increase constant MAXCNFLINELEN [%u]\n",MAXCNFLINELEN);
+      AbnormalExit();
+    }
 
-    if (line[0] =='p') {
-      sscanf(line.c_str(),"p cnf %" SCAN32 " %" SCAN32 "",&iNumVars,&iNumClauses);
-      if(iNumClauses == 0 || iNumVars == 0) {
-        state->errorMessage = "Error: invalid instance: contains 0 vars and/or 0 clauses";
-        return 0;
+    if (strncmp(sLine,"p wcnf",6)==0)
+      bIsWCNF = TRUE;
+
+    if (sLine[0] =='p') {
+      if (bWeighted) {
+        if (bIsWCNF) {
+          sscanf(sLine,"p wcnf %"SCAN32" %"SCAN32"",&iNumVars,&iNumClauses);
+        } else {
+          ReportPrint(pRepErr,"Warning! reading .cnf file and setting all weights = 1\n");
+          sscanf(sLine,"p cnf %"SCAN32" %"SCAN32"",&iNumVars,&iNumClauses);
+        }
+      } else {
+        if (bIsWCNF) {
+          ReportPrint(pRepErr,"Warning! reading .wcnf file and ignoring all weights\n");
+          sscanf(sLine,"p wcnf %"SCAN32" %"SCAN32"",&iNumVars,&iNumClauses);
+        } else {
+          sscanf(sLine,"p cnf %"SCAN32" %"SCAN32"",&iNumVars,&iNumClauses);
+        }
+      }
+    } else {
+      if (sLine[0] =='c') {
+
+      } else {
+        ReportPrint1(pRepErr,"Warning: Ignoring line in input file:\n   %s",sLine);
       }
     }
-    else if (line[0] =='c') {
-      //pass
-    }
-//    else {
-//      std::cout << "Warning: Ignoring line in input: " << line << std::endl;
-//    }
+  }
+
+  if ((iNumVars==0)||(iNumClauses==0)) {
+    ReportPrint(pRepErr,"Error: invalid instance file\n");
+    AbnormalExit();
   }
 
   iVARSTATELen = (iNumVars >> 3) + 1;
@@ -132,67 +167,100 @@ int initProblem(void* ubcsatState, const char* problem) {
 
   aClauseLen = (UINT32 *) AllocateRAM(iNumClauses * sizeof(UINT32));
   pClauseLits = (LITTYPE **) AllocateRAM(iNumClauses * sizeof(LITTYPE *));
+  if (bWeighted) {
+    aClauseWeight = (FLOAT *) AllocateRAM(iNumClauses * sizeof(FLOAT));
+  }
 
   pLastLit = pNextLit = pData = 0;
 
   iNumLits = 0;
   iMaxClauseLen = 0;
 
-  // Parse body of CNF
-  while(std::getline(ss, line)) {
 
-    if(line[0] == 'c') {
-      continue;
+  for (j=0;j<iNumClauses;j++) {
+
+    if (bWeighted) {
+      if (bIsWCNF) {
+        iScanRet = fscanf(filInput,"%"SCAN64,&w);
+        if (iScanRet != 1) {
+          ReportHdrPrefix(pRepErr);
+          ReportHdrPrint1(pRepErr,"Error reading clause weight at clause [%"P32"]\n",j);
+          ReportHdrPrint1(pRepErr,"  at or near: %s\n",sLine);
+          aClauseWeight[j] = 1;
+        }
+        aClauseWeight[j] = w;
+      } else {
+        aClauseWeight[j] = 1;
+      }
+      fTotalWeight += aClauseWeight[j];
+    } else {
+      if (bIsWCNF) {
+        fscanf(filInput,"%"SCAN64,&w);
+      }
     }
-
-    std::istringstream lineStream(line);
 
     pClauseLits[j] = pNextLit;
     aClauseLen[j] = 0;
 
-    while (lineStream >> signedVarNum && signedVarNum != 0) {
-      if (pNextLit >= pLastLit) {
-        pData = (LITTYPE *) AllocateRAM(LITSPERCHUNK * sizeof(LITTYPE));
-        pNextLit = pData;
-        pLastLit = pData + LITSPERCHUNK;
-        for (k=0;k<aClauseLen[j];k++) {
-          *pNextLit = pClauseLits[j][k];
-          pNextLit++;
+    do {
+      iScanRet = fscanf(filInput,"%"SCANS32,&l);
+
+      while (iScanRet != 1) {
+        if (iScanRet==0) {
+          fgets(sLine,MAXCNFLINELEN,filInput);
+
+          if (sLine[0] =='c') {
+            iScanRet = fscanf(filInput,"%"SCANS32,&l);
+          } else {
+            ReportPrint1(pRepErr,"Error reading instance at clause [%"P32"]\n",j);
+            ReportPrint1(pRepErr,"  at or near: %s\n",sLine);
+            AbnormalExit();
+          }
+        } else {
+          ReportPrint1(pRepErr,"Error reading instance. at clause [%"P32"]\n",j);
+          AbnormalExit();
         }
-        pClauseLits[j] = pData;
       }
 
-      *pNextLit = SetLitFromFile(signedVarNum);
+      if (l) {
 
-      if (GetVarFromLit(*pNextLit) > iNumVars) {
-        std::ostringstream msg;
-        msg << "Error: Invalid Literal " << signedVarNum << " in clause " << j;
-        state->errorMessage = msg.str().c_str();
-        return 0;
+        if (pNextLit >= pLastLit) {
+          pData = (LITTYPE *) AllocateRAM(LITSPERCHUNK * sizeof(LITTYPE));
+          pNextLit = pData;
+          pLastLit = pData + LITSPERCHUNK;
+          for (k=0;k<aClauseLen[j];k++) {
+            *pNextLit = pClauseLits[j][k];
+            pNextLit++;
+          }
+          pClauseLits[j] = pData;
+        }
+
+        *pNextLit = SetLitFromFile(l);
+
+        if (GetVarFromLit(*pNextLit) > iNumVars) {
+          ReportPrint2(pRepErr,"Error: Invalid Literal [%"P32"] in clause [%"P32"]\n",l,j);
+          AbnormalExit();
+        }
+
+        pNextLit++;
+        aClauseLen[j]++;
+        iNumLits++;
       }
-
-      pNextLit++;
-      aClauseLen[j]++;
-      iNumLits++;
-
-    }
+    } while (l != 0);
 
     if (aClauseLen[j] > iMaxClauseLen) {
       iMaxClauseLen = aClauseLen[j];
     }
 
     if (aClauseLen[j] == 0) {
-      std::ostringstream msg;
-      msg << "Error: Reading .cnf, clause " << j << " is empty" << std::endl;
-      msg << "bad line: " << line << std::endl;
-      state->errorMessage = msg.str().c_str();
-      return 0;
+      ReportPrint1(pRepErr,"Error: Reading .cnf, clause [%"P32"] is empty\n",j);
+      AbnormalExit();
     }
-
-    j++;
   }
 
   AdjustLastRAM((pNextLit - pData) * sizeof(LITTYPE));
+
+  CloseSingleFile(filInput);
 
   RunProcedures(PostRead);
 
@@ -203,7 +271,13 @@ int initProblem(void* ubcsatState, const char* problem) {
 
   RunProcedures(PreRun);
 
+  // timing code
+//  t2 = clock();
+//  float diff = (((float)t2 - (float)t1) / CLOCKS_PER_SEC ) * 1000;
+//  printf("C PRINTF: time to init problem %fs\n", diff);
+
   return TRUE;
+
 }
 
 int initAssignment(void* ubcsatState, const long* assignment, int sizeOfAssignment) {
@@ -328,10 +402,6 @@ void destroyProblem(void* ubcsatState) {
   delete ubcsat;
 }
 
-void resetAllStaticallyAllocatedGlobalVars() {
-  iUpdateSchemePromList = 0;
-}
-
 void interrupt(void* ubcsatState) {
   UBCSATState * ubcsat = (UBCSATState *) ubcsatState;
   ubcsat->resultState = 3;
@@ -368,4 +438,169 @@ int getNumClauses() {
 
 int getVarAssignment(int varNumber) {
   return aVarValue[varNumber];
+}
+
+int runInitData() {
+  RunProcedures(InitData);
+}
+
+void resetAllStaticallyAllocatedGlobalVars() {
+  // From algorithms.h
+  bTabu = FALSE;
+  bVarInFalse = FALSE;
+  bPromisingList = FALSE;
+  iTieBreaking = 0;
+  bPerformNoveltyAlternate = FALSE;
+  iUpdateSchemePromList = 0;
+  iAdaptiveNoiseScheme = 0;
+  iPromNovNoise = 0;
+  iPromDp = 0;
+  iPromWp = 0;
+  iScoringMeasure = 0;
+
+  iTabuTenureInterval = 0;
+  iTabuTenureLow = 0;
+  iTabuTenureHigh = 0;
+
+  iWp = 0;
+  iTabuTenure = 0;
+  iWalkSATTabuClause = 0;
+  iNovNoise = 0;
+  iDp = 0;
+  iLastAdaptStep = 0;
+  iLastAdaptNumFalse = 0;
+  fLastAdaptSumFalseW = 0;
+  iInvPhi = 0;
+  iInvTheta = 0;
+  iPromInvPhi = 0;
+  iPromInvTheta = 0;
+  intNovNoise = 0;
+  intDp = 0;
+  bAdaptPromWalkProb = FALSE;
+  iWpWalk = 0;
+  bAdaptWalkProb = FALSE;
+  fAlpha = 0;
+  fRho = 0;
+  fPenaltyImprove = 0;
+  iPs = 0;
+  iRPs = 0;
+  iPAWSFlatMove = 0;
+  iPAWSMaxInc = 0;
+  iNumPenClauses = 0;
+
+  // From ubcsat-globals.h
+  bWeighted = FALSE;
+  iNumRuns = 0;
+  iCutoff = 0;
+  fTimeOut = 0;
+  fGlobalTimeOut = 0;
+  iSeed = 0;
+  iTarget = 0;
+  fTargetW = 0;
+  iFlipCandidate = 0;
+  iFind = 0;
+  iNumSolutionsFound = 0;
+  iFindUnique = 0;
+  iPeriodicRestart = 0;
+  iProbRestart = 0;
+  iStagnateRestart = 0;
+  bRestart = FALSE;
+  iRun = 0;
+  iStep = 0;
+  bTerminateAllRuns = FALSE;
+  bSolutionFound = FALSE;
+  bTerminateRun = FALSE;
+  bSolveMode = FALSE;
+  iBestScore = 0;
+  fBestScore = 0;
+
+  // from ubcsat-triggers.h
+  iNumVars = 0;
+  iNumClauses = 0;
+  iNumLits = 0;
+  iMaxClauseLen = 0;
+  fTotalWeight = 0;
+  iTotalWeight = 0;
+  iVARSTATELen = 0;
+  dRunTime = 0;
+  iNumCandidates = 0;
+  iMaxCandidates = 0;
+  iInitVarFlip = 0;
+  bVarInitGreedy = FALSE;
+  iNumFalse = 0;
+  fSumFalseW = 0;
+  iSumFalsePen = 0;
+  fSumClauseVarFlipCount = 0;
+  fSumClauseVarFlipCount;
+  iNumFalseList = 0;
+  iNumVarsInFalseList = 0;
+  iVarLastChangeReset = 0;
+  bTrackChanges = FALSE;
+  iNumChanges = 0;
+  iNumChangesW = 0;
+  bPen = FALSE;
+  iNumDecPromVars = 0;
+  iNumBestScoreList = 0;
+  bClausePenaltyCreated = FALSE;
+  bClausePenaltyFLOAT = FALSE;
+  fBasePenaltyFL = 0;
+  fTotalPenaltyFL = 0;
+  iInitPenaltyINT = 0;
+  iBasePenaltyINT = 0;
+  iTotalPenaltyINT = 0;
+  iNumNullFlips = 0;
+  iNumLocalMins = 0;
+  iNumLogDistValues = 0;
+  iLogDistStepsPerDecade = 0;
+  iBestNumFalse = 0;
+  iBestStepNumFalse = 0;
+  fBestSumFalseW = 0;
+  iBestStepSumFalseW = 0;
+  iStartNumFalse = 0;
+  fStartSumFalseW = 0;
+  fImproveMean = 0;
+  fImproveMeanW = 0;
+  iFirstLM = 0;
+  iFirstLMStep = 0;
+  fFirstLMW = 0;
+  iFirstLMStepW = 0;
+  fFirstLMRatio = 0;
+  fFirstLMRatioW = 0;
+  fTrajBestLMMean = 0;
+  fTrajBestLMMeanW = 0;
+  fTrajBestLMCV = 0;
+  fTrajBestLMCVW = 0;
+  iNoImprove = 0;
+  iStartSeed = 0;
+  fFlipCountsMean = 0;
+  fFlipCountsCV = 0;
+  fFlipCountsStdDev = 0;
+  fUnsatCountsMean = 0;
+  fUnsatCountsCV = 0;
+  fUnsatCountsStdDev = 0;
+  iVarFlipHistoryLen = 0;
+  iAutoCorrMaxLen = 0;
+  fAutoCorrCutoff = 0;
+  iAutoCorrLen = 0;
+  fAutoCorrOneVal = 0;
+  fAutoCorrOneEst = 0;
+  fBranchFactor = 0;
+  fBranchFactorW = 0;
+  iNumUpSteps = 0;
+  iNumDownSteps = 0;
+  iNumSideSteps = 0;
+  iNumUpStepsW = 0;
+  iNumDownStepsW = 0;
+  iNumSideStepsW = 0;
+  iNumRestarts = 0;
+  bKnownSolutions = FALSE;
+  fFDCRun = 0;
+  iNumUniqueSolutions = 0;
+  iLastUnique = 0;
+  iNumDecPromVars = 0;
+  iNumWeighted = 0;
+  bPen = FALSE;
+  bPerformClauseConfChecking = FALSE;
+  bPerformNeighborConfChecking = FALSE;
+
 }

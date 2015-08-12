@@ -5,36 +5,34 @@
 #include <chrono>
 #include "JNATest.h"
 
-TEST_F(JNATest, testInitProblem) {
+TEST_F(JNATest, initProblem) {
   initProblem(_state, _dummyCNF);
   EXPECT_EQ(4, iNumVars);
   EXPECT_EQ(20, iNumClauses);
 }
 
-TEST_F(JNATest, testInitProblemParseComment) {
-  bool success = (bool) initProblem(_state, _facCNF);
-  EXPECT_TRUE(success);
+TEST_F(JNATest, initProblemParseComment) {
+  EXPECT_TRUE( initProblem(_state, _facCNF) );
 
   EXPECT_EQ(29, iNumVars);
   EXPECT_EQ(109, iNumClauses);
 }
 
-TEST_F(JNATest, testInitAssignment) {
+TEST_F(JNATest, initAssignment) {
   initProblem(_state, _dummyCNF);
-  long assignment[] = {-1, 2, -3};
+  long assignment[] = {1, 2, -3};
 
-  bool success = (bool) initAssignment(_state, assignment, 3);
-  EXPECT_TRUE(success);
+  EXPECT_TRUE( initAssignment(_state, assignment, 3) );
+  RunProcedures(InitData);
 
-  EXPECT_EQ(FALSE, aVarInit[1]);
-  EXPECT_EQ(TRUE, aVarInit[2]);
-  EXPECT_EQ(FALSE, aVarInit[3]);
+  for (int i=0; i < sizeof(assignment) / sizeof(long); i++) {
+    EXPECT_EQ(assignment[i] > 0, aVarValue[i + 1]);
+  }
 }
 
-TEST_F(JNATest, testSolveDummyProblem) {
+TEST_F(JNATest, solveDummyProblem) {
   initProblem(_state, _dummyCNF);
-  bool success = (bool) solveProblem(_state, 5);
-  ASSERT_TRUE(success);
+  ASSERT_TRUE( solveProblem(_state, 5) );
   ASSERT_EQ(1, _state->resultState);
 
   int* assignment = getResultAssignment(_state);
@@ -45,10 +43,9 @@ TEST_F(JNATest, testSolveDummyProblem) {
   EXPECT_EQ(TRUE, assignment[4]  > 0);
 }
 
-TEST_F(JNATest, testSolveFACProblem) {
+TEST_F(JNATest, solveFACProblem) {
   initProblem(_state, _facCNF);
-  bool success = (bool) solveProblem(_state, 5);
-  ASSERT_TRUE(success);
+  ASSERT_TRUE( solveProblem(_state, 5) );
   ASSERT_EQ(1, _state->resultState);
 
   int* assignment = getResultAssignment(_state);
@@ -62,7 +59,7 @@ TEST_F(JNATest, testSolveFACProblem) {
 /**
  * Verify that state is properly reset within iterations of the same algorithm.
  */
-TEST_F(JNATest, testSolveThreeDifferentProblems) {
+TEST_F(JNATest, solveThreeDifferentProblems) {
   // Problem 1
   initProblem(_state, _dummyCNF);
   solveProblem(_state, 1);
@@ -136,8 +133,7 @@ TEST_F(JNATest, oneHundredTimesSameInstance) {
  */
 TEST_F(JNATest, differentConfigsSameAlgo) {
   destroyProblem(_state);
-  const char params1[] = "-alg satenstein -adaptive 0 -alpha 1.3 -clausepen 0 -heuristic 5 -maxinc 10 -novnoise 0.3 -performrandomwalk 1 -pflat 0.15  -promisinglist 0 -randomwalk 4 -rfp 0.07 -rho 0.8 -sapsthresh -0.1 -scoringmeasure 1 -selectclause 1  -singleclause 1 -tabusearch 0  -varinfalse 1";
-  _state = (UBCSATState *) initConfig(params1);
+  _state = (UBCSATState *) initConfig(_params1);
   initProblem(_state, _dummyCNF);
   bool success1 = (bool) solveProblem(_state, 5);
   ASSERT_TRUE(success1);
@@ -152,8 +148,7 @@ TEST_F(JNATest, differentConfigsSameAlgo) {
 
 
   destroyProblem(_state);
-  const char params2[] = "-alg satenstein -adaptivenoisescheme 1 -adaptiveprom 0 -adaptpromwalkprob 0 -adaptwalkprob 0 -alpha 1.126 -decreasingvariable 3 -dp 0.05 -heuristic 2 -novnoise 0.5 -performalternatenovelty 1 -phi 5 -promdp 0.05 -promisinglist 0 -promnovnoise 0.5 -promphi 5 -promtheta 6 -promwp 0.01 -rho 0.17 -scoringmeasure 3 -selectclause 1 -theta 6 -tiebreaking 1 -updateschemepromlist 3 -wp 0.03 -wpwalk 0.3 -adaptive 1 -clausepen 1 -performrandomwalk 0 -singleclause 0 -smoothingscheme 1 -tabusearch 0 -varinfalse 1";
-  _state = (UBCSATState *) initConfig(params2);
+  _state = (UBCSATState *) initConfig(_params2);
   initProblem(_state, _dummyCNF);
   bool success2 = (bool) solveProblem(_state, 5);
   ASSERT_TRUE(success2);
@@ -168,8 +163,7 @@ TEST_F(JNATest, differentConfigsSameAlgo) {
 
 
   destroyProblem(_state);
-  const char params3[] = "-alg satenstein -adaptivenoisescheme 2 -adaptiveprom 0 -adaptpromwalkprob 0 -adaptwalkprob 0 -alpha 1.126 -c 0.0001 -decreasingvariable 3 -dp 0.05 -heuristic 2 -novnoise 0.5 -performalternatenovelty 1 -phi 5 -promdp 0.05 -promisinglist 0 -promnovnoise 0.5 -promphi 5 -promtheta 6 -promwp 0.01 -ps 0.033 -rho 0.8 -s 0.001 -scoringmeasure 3 -selectclause 1 -theta 6 -tiebreaking 3 -updateschemepromlist 3 -wp 0.04  -wpwalk 0.3 -adaptive 0 -clausepen 1 -performrandomwalk 0 -singleclause 0 -smoothingscheme 1 -tabusearch 0 -varinfalse 1";
-  _state = (UBCSATState *) initConfig(params3);
+  _state = (UBCSATState *) initConfig(_params3);
   initProblem(_state, _dummyCNF);
   bool success3 = (bool) solveProblem(_state, 5);
   ASSERT_TRUE(success3);
@@ -182,29 +176,90 @@ TEST_F(JNATest, differentConfigsSameAlgo) {
   EXPECT_EQ(TRUE, assignment3[3]  > 0);
   EXPECT_EQ(TRUE, assignment3[4]  > 0);
 
-
 }
 
 /**
  * Time out on an unsat problem with maximum number of tries
  */
-TEST_F(JNATest, testTimeout) {
+TEST_F(JNATest, timeout) {
   std::chrono::time_point<std::chrono::system_clock> start, end;
-  ASSERT_TRUE( initProblem(_state, _miniUnsatCNF) );
   start = std::chrono::system_clock::now();
+  ASSERT_TRUE( initProblem(_state, _miniUnsatCNF) );
   double timeout = 0.5;
   ASSERT_TRUE( solveProblem(_state, timeout) );
   end = std::chrono::system_clock::now();
   std::chrono::duration<float> elapsed_seconds = end-start;
-  ASSERT_TRUE(elapsed_seconds.count() < timeout + 0.1);
+  ASSERT_TRUE(elapsed_seconds.count() < timeout + 0.5);
   ASSERT_EQ(2, _state->resultState);
+}
+
+TEST_F(JNATest, timeInitProblem) {
+  // read a large problem from file
+  // XXX: Path string will need to be changed here to accommodate other test machines
+  char *cnfBuffer = 0;
+  long length;
+  FILE * f = fopen ("/ubc/cs/project/arrow/pcernek/data/unsat-srpk.cnf", "rb");
+
+  if (f)
+  {
+    fseek (f, 0, SEEK_END);
+    length = ftell (f);
+    fseek (f, 0, SEEK_SET);
+    cnfBuffer = (char *) malloc (length);
+    if (cnfBuffer)
+    {
+      fread (cnfBuffer, 1, length, f);
+    }
+    fclose (f);
+  }
+
+  // time problem initialization
+  std::chrono::time_point<std::chrono::system_clock> start, end;
+  start = std::chrono::system_clock::now();
+
+  ASSERT_TRUE( initProblem(_state, cnfBuffer) );
+
+  end = std::chrono::system_clock::now();
+  std::chrono::duration<float> elapsed_seconds = end-start;
+
+  ASSERT_TRUE( elapsed_seconds.count() < 0.2);
+  ASSERT_EQ( 10255, iNumVars);
+  ASSERT_EQ( 180707, iNumClauses);
+  free(cnfBuffer);
+
+}
+
+TEST_F(JNATest, reproduceJavaSegfault) {
+  destroyProblem(_state);
+  // ===== HERE BEGINS A REPLICATION OF THE JAVA TESTS ====
+  // testTimeout
+  _state = (UBCSATState *) initConfig(_params1);
+  initProblem(_state, _facCNF);
+  solveProblem(_state, 0.5);
+  destroyProblem(_state);
+
+  // testSameProblemHundredTimes
+  _state = (UBCSATState *) initConfig(_defaultSteinParams);
+  initProblem(_state, _facCNF);
+  solveProblem(_state, 0.5);
+  destroyProblem(_state);
+
+  // back to advanced params
+  _state = (UBCSATState *) initConfig(_params2);
+  initProblem(_state, _facCNF);
+  solveProblem(_state, 0.5);
+  destroyProblem(_state);
+
+  // and back to default
+  _state = (UBCSATState *) initConfig(_defaultSteinParams);
+  initProblem(_state, _facCNF);
+  solveProblem(_state, 0.5);
+
 }
 
 JNATest::JNATest() {
   initLibrary();
-  const char params[] = "-alg satenstein";
-//  const char params[] = "-alg satenstein -decreasingvariable 0";
-//  const char params[] = "-alg sparrow";
+  const char params[] = "-alg satenstein -cutoff max -seed 1";
   _state = (UBCSATState *) initConfig(params);
 
   _dummyCNF = "p cnf 4 20\n-1 2 3 0\n1 -2 4 0\n1 3 4 0\n2 3 -4 0\n-1 -2 -4 0\n1 -2 3 0\n2 -3 4 0\n-2 3 4 0\n-1 3 -4 0\n2 3 4 0\n1 2 -3 0\n1 -3 -4 0\n1 3 -4 0\n-1 2 4 0\n-1 -2 -3 0\n1 2 0\n-2 4 0\n-3 4 0\n2 3 0\n1 2 3 4 0\n";

@@ -1330,7 +1330,15 @@ void PerformPickPromisingVar() {
       break;
 
     case PICK_DCCA:
-      PickDCCA();
+      PickCSDvar();
+
+      if (iFlipCandidate == 0) {
+        PickNVDvar();
+      }
+
+      if (iFlipCandidate == 0) {
+        PickSDvar();
+      }
       break;
 
     default:
@@ -1506,7 +1514,12 @@ void PerformHeuristic() {
 
       break;
 
+    case H_PICK_DCCA_DIVERSIFY:
+      PickDCCADiversify();
+      break;
+
     default:
+      // Should never be reached
       break;
   }
 }

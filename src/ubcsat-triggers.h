@@ -242,12 +242,6 @@ void UpdateDecPromVars();
 void CreateDecPromPenVars();
 void InitDecPromPenVars();
 void UpdateDecPromPenVars();
-BOOL bPen;
-
-UINT32 *aDecPromVarsList;
-UINT32 *aDecPromVarsListPos;
-BOOL *aIsDecPromVar;
-UINT32 iNumDecPromVars;
 
 bool isDecreasing(UINT32 var);
 void PickGNoveltyPlusProm();

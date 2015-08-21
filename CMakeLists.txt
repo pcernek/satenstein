@@ -63,10 +63,8 @@ target_link_libraries(ubcsat m)
 #########
 
 set(TEST_FILES ${SOURCE_FILES}
-# For now, one of these lines must be uncommented for tests to be run.
-# TODO: Make it so that all these tests can be run simultaneously.
-#                test/AddRemoveListsTest.cpp
-#                test/DccaTest.cpp
+        test/AddRemoveListsTest.cpp
+        test/DccaTest.cpp
         test/FacadeTest.cpp
 )
 

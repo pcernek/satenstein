@@ -3,7 +3,7 @@
 //
 
 #include <sstream>
-#include "jna-ubcsat.hpp"
+#include "ubcsat-facade.hpp"
 #include "ubcsat-globals.h"
 
 /**

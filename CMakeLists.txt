@@ -54,7 +54,7 @@ set(TEST_FILES ${SOURCE_FILES}
 # TODO: Make it so that all these tests can be run simultaneously.
 #                test/AddRemoveListsTest.cpp
 #                test/DccaTest.cpp
-                test/JNATest.cpp
+        test/FacadeTest.cpp
                 )
 
 
@@ -64,7 +64,7 @@ include_directories(gtest STATIC lib/gtest-1.7.0/include )
 
 add_executable(ubcsat src/ubcsat.c ${SOURCE_FILES})
 add_executable(runTests ${TEST_FILES} test/TestRunner.cpp)
-add_library(jnaubcsat SHARED src/jna-ubcsat.cpp ${SOURCE_FILES})
+add_library(jnaubcsat SHARED src/ubcsat-facade.cpp ${SOURCE_FILES})
 
 target_link_libraries(runTests gtest jnaubcsat)
 target_link_libraries(ubcsat m)

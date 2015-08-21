@@ -3,7 +3,7 @@
 //
 
 #include <chrono>
-#include "JNATest.h"
+#include "FacadeTest.h"
 
 TEST_F(JNATest, initProblem) {
   initProblem(_state, _dummyCNF);
